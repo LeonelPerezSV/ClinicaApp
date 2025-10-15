@@ -1,0 +1,16 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <group android:id="@+id/group_doctor">
+        <item android:id="@+id/nav_home" android:title="Inicio" app:icon="@drawable/ic_home"/>
+        <item android:id="@+id/nav_citas" android:title="Citas" app:icon="@drawable/ic_event"/>
+        <item android:id="@+id/nav_pacientes" android:title="Pacientes" app:icon="@drawable/ic_people"/>
+        <item android:id="@+id/nav_recetas" android:title="Recetas" app:icon="@drawable/ic_medical_services"/>
+        <item android:id="@+id/nav_expediente" android:title="Expedientes" app:icon="@drawable/ic_folder"/>
+    </group>
+
+    <group android:id="@+id/group_common">
+        <item android:id="@+id/nav_settings" android:title="Configuración" app:icon="@drawable/ic_settings"/>
+        <item android:id="@+id/nav_logout" android:title="Cerrar sesión" app:icon="@drawable/ic_logout"/>
+    </group>
+</menu>

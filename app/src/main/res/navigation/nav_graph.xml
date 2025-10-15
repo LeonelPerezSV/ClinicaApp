@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    app:startDestination="@id/nav_home">
+
+    <!-- 🏠 Inicio -->
+    <fragment
+        android:id="@+id/nav_home"
+        android:name="com.example.clinicaapp.ui.home.HomeFragment"
+        android:label="Inicio"
+        tools:layout="@layout/fragment_home" />
+
+    <!-- 📅 Citas -->
+    <fragment
+        android:id="@+id/nav_citas"
+        android:name="com.example.clinicaapp.ui.appointments.AppointmentListFragment"
+        android:label="Mis Citas"
+        tools:layout="@layout/fragment_appointment_list">
+        <action
+            android:id="@+id/action_nav_citas_to_form"
+            app:destination="@id/appointmentFormFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/appointmentFormFragment"
+        android:name="com.example.clinicaapp.ui.appointments.AppointmentFormFragment"
+        android:label="Nueva Cita"
+        tools:layout="@layout/fragment_appointment_form" />
+
+    <!-- 👩‍⚕️ Pacientes -->
+    <fragment
+        android:id="@+id/nav_pacientes"
+        android:name="com.example.clinicaapp.ui.patients.PatientListFragment"
+        android:label="Pacientes"
+        tools:layout="@layout/fragment_patient_list">
+        <action
+            android:id="@+id/action_nav_pacientes_to_form"
+            app:destination="@id/patientFormFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/patientFormFragment"
+        android:name="com.example.clinicaapp.ui.patients.PatientFormFragment"
+        android:label="Formulario Paciente"
+        tools:layout="@layout/fragment_patient_form" />
+
+    <!-- 💊 Recetas -->
+    <fragment
+        android:id="@+id/nav_recetas"
+        android:name="com.example.clinicaapp.ui.prescriptions.PrescriptionListFragment"
+        android:label="Recetas Médicas"
+        tools:layout="@layout/fragment_prescription_list">
+        <action
+            android:id="@+id/action_nav_recetas_to_form"
+            app:destination="@id/prescriptionFormFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/prescriptionFormFragment"
+        android:name="com.example.clinicaapp.ui.prescriptions.PrescriptionFormFragment"
+        android:label="Formulario Receta"
+        tools:layout="@layout/fragment_prescription_form" />
+
+    <!-- 📂 Expedientes -->
+    <fragment
+        android:id="@+id/nav_expediente"
+        android:name="com.example.clinicaapp.ui.records.MedicalRecordListFragment"
+        android:label="Expedientes"
+        tools:layout="@layout/fragment_medical_record_list">
+        <action
+            android:id="@+id/action_nav_expediente_to_form"
+            app:destination="@id/medicalRecordFormFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/medicalRecordFormFragment"
+        android:name="com.example.clinicaapp.ui.records.MedicalRecordFormFragment"
+        android:label="Formulario Expediente"
+        tools:layout="@layout/fragment_medical_record_form" />
+
+    <!-- ⚙️ Configuración -->
+    <fragment
+        android:id="@+id/nav_settings"
+        android:name="com.example.clinicaapp.ui.settings.SettingsFragment"
+        android:label="Configuración"
+        tools:layout="@layout/fragment_settings" />
+</navigation>

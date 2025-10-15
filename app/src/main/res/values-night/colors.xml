@@ -1,0 +1,9 @@
+<resources>
+    <color name="brandPrimary">#1E56B0</color>
+    <color name="brandPrimaryDark">#143A7A</color>
+    <color name="brandAccent">#47B881</color>
+    <color name="backgroundLight">#121212</color>
+    <color name="surfaceLight">#1E1E1E</color>
+    <color name="textPrimary">#FFFFFF</color>
+    <color name="textSecondary">#A1A1A1</color>
+</resources>

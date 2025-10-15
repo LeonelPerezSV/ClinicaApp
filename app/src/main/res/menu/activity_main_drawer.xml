@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Comunes -->
+    <group
+        android:id="@+id/group_common"
+        android:checkableBehavior="single">
+        <item
+            android:id="@+id/nav_home"
+            android:icon="@android:drawable/ic_menu_view"
+            android:title="Inicio" />
+    </group>
+
+    <!-- Paciente -->
+    <group
+        android:id="@+id/group_patient"
+        android:checkableBehavior="single">
+        <item
+            android:id="@+id/nav_citas"
+            android:icon="@android:drawable/ic_menu_my_calendar"
+            android:title="Mis Citas" />
+        <item
+            android:id="@+id/nav_recetas_paciente"
+            android:icon="@android:drawable/ic_menu_edit"
+            android:title="Mis Recetas" />
+    </group>
+
+    <!-- Doctor -->
+    <group
+        android:id="@+id/group_doctor"
+        android:checkableBehavior="single">
+        <item
+            android:id="@+id/nav_pacientes"
+            android:icon="@android:drawable/ic_menu_info_details"
+            android:title="Pacientes" />
+        <item
+            android:id="@+id/nav_citas"
+            android:icon="@android:drawable/ic_menu_today"
+            android:title="Citas del Día" />
+        <item
+            android:id="@+id/nav_recetas"
+            android:icon="@android:drawable/ic_menu_edit"
+            android:title="Recetas Médicas" />
+        <item
+            android:id="@+id/nav_expediente"
+            android:icon="@android:drawable/ic_menu_agenda"
+            android:title="Expedientes" />
+    </group>
+
+    <!-- Configuración y Cierre -->
+    <group
+        android:id="@+id/group_settings"
+        android:checkableBehavior="none">
+        <item
+            android:id="@+id/nav_settings"
+            android:icon="@android:drawable/ic_menu_preferences"
+            android:title="Configuración" />
+        <item
+            android:id="@+id/nav_logout"
+            android:icon="@android:drawable/ic_lock_power_off"
+            android:title="Cerrar sesión" />
+    </group>
+
+</menu>

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:gravity="center"
+    android:background="@color/white"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ImageView
+        android:layout_width="120dp"
+        android:layout_height="120dp"
+        android:src="@mipmap/ic_launcher_round"
+        android:contentDescription="Logo"
+        android:layout_marginBottom="24dp" />
+
+    <EditText
+        android:id="@+id/edtUser"
+        android:hint="Usuario"
+        android:drawableStart="@android:drawable/ic_menu_myplaces"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp" />
+
+    <EditText
+        android:id="@+id/edtPass"
+        android:hint="Contraseña"
+        android:inputType="textPassword"
+        android:drawableStart="@android:drawable/ic_lock_idle_lock"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <Spinner
+        android:id="@+id/spinnerUserType"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp" />
+
+    <Button
+        android:id="@+id/btnLogin"
+        android:text="Iniciar sesión"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp" />
+
+    <TextView
+        android:id="@+id/txtRegisterLink"
+        android:text="¿No tienes cuenta? Crear una nueva"
+        android:textColor="@color/brandPrimary"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp" />
+</LinearLayout>
