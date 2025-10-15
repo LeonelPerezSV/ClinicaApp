@@ -20,6 +20,7 @@ import androidx.lifecycle.ViewModelProvider;
 import com.example.clinicaapp.data.db.AppDatabase;
 import com.example.clinicaapp.data.entities.Appointment;
 import com.example.clinicaapp.data.entities.Patient;
+import com.example.clinicaapp.data.entities.Doctor;
 import com.example.clinicaapp.databinding.FragmentAppointmentFormBinding;
 import com.example.clinicaapp.viewmodel.AppointmentViewModel;
 
@@ -44,12 +45,13 @@ public class AppointmentFormFragment extends Fragment {
     private AppointmentViewModel viewModel;
     private Integer currentId = null;
 
-    // ids del usuario logueado
+    // IDs del usuario logueado
     private long loggedUserId;
     private boolean isDoctor;
 
-    // 🔹 mapa para vincular nombre mostrado con ID real del paciente
+    // 🔹 Mapas para vincular los textos mostrados con IDs reales
     private Map<String, Integer> patientMap = new HashMap<>();
+    private Map<String, Integer> doctorMap = new HashMap<>();
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -68,8 +70,9 @@ public class AppointmentFormFragment extends Fragment {
         loggedUserId = prefs.getLong("user_id", 0);
         isDoctor = "Doctor".equalsIgnoreCase(type);
 
-        // 🔹 Cargar dropdown de pacientes
+        // 🔹 Cargar dropdowns dinámicos
         cargarPacientes();
+        cargarDoctores();
 
         // 🔹 Bloquear campos según tipo de usuario
         if (isDoctor) {
@@ -114,17 +117,12 @@ public class AppointmentFormFragment extends Fragment {
     }
 
     /**
-     * Carga dinámica de pacientes desde Room y configura el dropdown
+     * 🔸 Carga dinámica de pacientes desde Room
      */
     private void cargarPacientes() {
         Executors.newSingleThreadExecutor().execute(() -> {
             AppDatabase db = AppDatabase.getInstance(requireContext());
-            List<Patient> patients = db.patientDao().getAll().getValue();
-
-            // ⚠️ Puede que LiveData no devuelva aún la lista, así que lo forzamos con consulta directa
-            if (patients == null || patients.isEmpty()) {
-                patients = db.patientDao().getAllPatientsList();
-            }
+            List<Patient> patients = db.patientDao().getAllPatientsList();
 
             List<String> nombres = new ArrayList<>();
             patientMap.clear();
@@ -135,18 +133,51 @@ public class AppointmentFormFragment extends Fragment {
                 patientMap.put(display, p.getId());
             }
 
-            List<String> finalNombres = nombres;
             requireActivity().runOnUiThread(() -> {
                 ArrayAdapter<String> adapter = new ArrayAdapter<>(
                         requireContext(),
                         android.R.layout.simple_dropdown_item_1line,
-                        finalNombres
+                        nombres
                 );
                 binding.inputPatientId.setAdapter(adapter);
             });
         });
     }
 
+    /**
+     * 🔸 Carga dinámica de doctores desde Room
+     */
+    private void cargarDoctores() {
+        Executors.newSingleThreadExecutor().execute(() -> {
+            AppDatabase db = AppDatabase.getInstance(requireContext());
+            List<Doctor> doctors = db.doctorDao().getAllDoctorsList();
+
+            List<String> nombres = new ArrayList<>();
+            doctorMap.clear();
+
+            for (Doctor d : doctors) {
+                String display = "#" + d.getId() + " - " + d.getName();
+                if (d.getSpecialty() != null && !d.getSpecialty().isEmpty()) {
+                    display += " (" + d.getSpecialty() + ")";
+                }
+                nombres.add(display);
+                doctorMap.put(display, d.getId());
+            }
+
+            requireActivity().runOnUiThread(() -> {
+                ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                        requireContext(),
+                        android.R.layout.simple_dropdown_item_1line,
+                        nombres
+                );
+                binding.inputDoctorId.setAdapter(adapter);
+            });
+        });
+    }
+
+    /**
+     * 🔸 Guardar cita en la base de datos
+     */
     private void guardarCita() {
         String patientStr = binding.inputPatientId.getText().toString().trim();
         String doctorStr  = binding.inputDoctorId.getText().toString().trim();
@@ -166,7 +197,6 @@ public class AppointmentFormFragment extends Fragment {
         if (isDoctor) {
             a.setDoctorId((int) loggedUserId);
 
-            // obtiene ID real del paciente seleccionado
             Integer selectedPatientId = patientMap.get(patientStr);
             if (selectedPatientId == null) {
                 Toast.makeText(getContext(), "Seleccione un paciente válido", Toast.LENGTH_SHORT).show();
@@ -176,7 +206,13 @@ public class AppointmentFormFragment extends Fragment {
 
         } else {
             a.setPatientId((int) loggedUserId);
-            a.setDoctorId(Integer.parseInt(doctorStr));
+
+            Integer selectedDoctorId = doctorMap.get(doctorStr);
+            if (selectedDoctorId == null) {
+                Toast.makeText(getContext(), "Seleccione un doctor válido", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            a.setDoctorId(selectedDoctorId);
         }
 
         a.setDate(dateStr);
