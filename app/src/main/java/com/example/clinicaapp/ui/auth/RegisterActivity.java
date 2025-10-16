@@ -80,9 +80,93 @@ public class RegisterActivity extends AppCompatActivity {
         User user = new User(fullName, username, password, selectedType);
         db.userDao().insert(user);
 
+        // ✅ Si es doctor, crear perfil en la tabla doctors
+        if ("Doctor".equalsIgnoreCase(selectedType)) {
+            try {
+                com.example.clinicaapp.data.repo.DoctorRepository doctorRepo =
+                        new com.example.clinicaapp.data.repo.DoctorRepository(this);
+
+                com.example.clinicaapp.data.entities.Doctor doctor =
+                        new com.example.clinicaapp.data.entities.Doctor(
+                                fullName,
+                                "General",
+                                username + "@clinicapp.com",
+                                "0000-0000"
+                        );
+
+                doctorRepo.insert(doctor);
+                Toast.makeText(this, "Perfil de doctor creado correctamente", Toast.LENGTH_SHORT).show();
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                Toast.makeText(this, "Error al crear perfil de doctor: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        }
+
+        // ✅ Si es paciente, crear perfil + expediente médico
+        if ("Paciente".equalsIgnoreCase(selectedType)) {
+            try {
+                com.example.clinicaapp.data.repo.PatientRepository patientRepo =
+                        new com.example.clinicaapp.data.repo.PatientRepository(this);
+
+                // Dividir nombre completo
+                String[] parts = fullName.split(" ", 2);
+                String firstName = parts.length > 0 ? parts[0] : fullName;
+                String lastName = parts.length > 1 ? parts[1] : "";
+
+                // Crear paciente
+                com.example.clinicaapp.data.entities.Patient patient =
+                        new com.example.clinicaapp.data.entities.Patient(
+                                firstName,
+                                lastName,
+                                username + "@clinicapp.com",
+                                "0000-0000"
+                        );
+
+                // Insertar paciente y recuperar ID generado
+                patientRepo.insert(patient);
+
+                // ⚠️ Esperar un instante a que Room lo inserte (solo necesario la primera vez)
+                new android.os.Handler().postDelayed(() -> {
+                    // Buscar el último paciente insertado (el más reciente)
+                    com.example.clinicaapp.data.entities.Patient last =
+                            db.patientDao().getAllPatientsList().get(
+                                    db.patientDao().getAllPatientsList().size() - 1
+                            );
+
+                    if (last != null) {
+                        // Crear expediente vinculado
+                        com.example.clinicaapp.data.repo.MedicalRecordRepository recordRepo =
+                                new com.example.clinicaapp.data.repo.MedicalRecordRepository(this);
+
+                        com.example.clinicaapp.data.entities.MedicalRecord record =
+                                new com.example.clinicaapp.data.entities.MedicalRecord(
+                                        last.getId(),
+                                        "Sin diagnóstico inicial",
+                                        "Sin alergias registradas",
+                                        "Sin notas médicas"
+                                );
+
+                        recordRepo.insert(record);
+                        Toast.makeText(this, "Expediente médico creado automáticamente", Toast.LENGTH_SHORT).show();
+                    }
+                }, 500); // Pequeña pausa para asegurar inserción previa
+
+                Toast.makeText(this, "Perfil de paciente creado correctamente", Toast.LENGTH_SHORT).show();
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                Toast.makeText(this, "Error al crear perfil de paciente o expediente: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            }
+        }
+
         Toast.makeText(this, "Usuario registrado correctamente", Toast.LENGTH_SHORT).show();
 
         // Regresar al login
         finish();
     }
+
+
+
+
 }

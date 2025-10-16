@@ -2,12 +2,9 @@ package com.example.clinicaapp.data.repo;
 
 import android.content.Context;
 import androidx.lifecycle.LiveData;
-
 import com.example.clinicaapp.data.dao.PatientDao;
 import com.example.clinicaapp.data.db.AppDatabase;
-import com.example.clinicaapp.data.entities.MedicalRecord;
 import com.example.clinicaapp.data.entities.Patient;
-
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -54,10 +51,7 @@ public class PatientRepository {
         executor.execute(() -> dao.deleteById(id));
     }
 
-
     public LiveData<Patient> getById(int id) {
         return dao.getById(id);
     }
-
-
 }

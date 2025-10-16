@@ -19,12 +19,14 @@ public class MedicalRecordListFragment extends Fragment implements MedicalRecord
     private MedicalRecordViewModel viewModel;
     private MedicalRecordAdapter adapter;
 
-    @Override public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         binding = FragmentMedicalRecordListBinding.inflate(inflater, container, false);
         return binding.getRoot();
     }
 
-    @Override public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
         viewModel = new ViewModelProvider(this).get(MedicalRecordViewModel.class);
@@ -39,14 +41,11 @@ public class MedicalRecordListFragment extends Fragment implements MedicalRecord
 
         binding.fabAdd.setOnClickListener(v -> openForm(-1));
 
-        new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
-            @Override public boolean onMove(@NonNull RecyclerView rv, @NonNull RecyclerView.ViewHolder v1, @NonNull RecyclerView.ViewHolder v2) { return false; }
-            @Override public void onSwiped(@NonNull RecyclerView.ViewHolder vh, int dir) {
-                MedicalRecord item = adapter.getAt(vh.getAdapterPosition());
-                viewModel.deleteById(item.getId());
-                Toast.makeText(getContext(), "Historial eliminado", Toast.LENGTH_SHORT).show();
-            }
-        }).attachToRecyclerView(binding.recycler);
+        // 🔒 Bloquear eliminación directa
+        binding.recycler.setOnLongClickListener(v -> {
+            Toast.makeText(getContext(), "El expediente no puede eliminarse directamente, depende del paciente.", Toast.LENGTH_LONG).show();
+            return true;
+        });
     }
 
     private void openForm(int id) {
@@ -58,5 +57,8 @@ public class MedicalRecordListFragment extends Fragment implements MedicalRecord
                 .commit();
     }
 
-    @Override public void onClick(MedicalRecord item) { openForm(item.getId()); }
+    @Override
+    public void onClick(MedicalRecord item) {
+        openForm(item.getId());
+    }
 }

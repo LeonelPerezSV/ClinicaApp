@@ -16,7 +16,7 @@
 
     <TextView
         android:id="@+id/empty"
-        android:text="No hay pacientes registrados"
+        android:text="No hay recetas registradas"
         android:visibility="gone"
         android:textAlignment="center"
         android:textColor="#888"

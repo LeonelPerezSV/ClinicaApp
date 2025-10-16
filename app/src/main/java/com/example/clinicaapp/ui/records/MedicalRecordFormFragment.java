@@ -42,6 +42,22 @@ public class MedicalRecordFormFragment extends Fragment {
                     binding.inputSummary.setText(r.getSummary());
                     binding.inputAllergies.setText(r.getAllergies());
                     binding.inputNotes.setText(r.getNotes());
+
+                    // 🔍 Mostrar nombre del paciente
+                    new Thread(() -> {
+                        try {
+                            com.example.clinicaapp.data.entities.Patient p =
+                                    com.example.clinicaapp.data.db.AppDatabase
+                                            .getInstance(requireContext())
+                                            .patientDao()
+                                            .findById(r.getPatientId());
+                            if (p != null && getActivity() != null) {
+                                requireActivity().runOnUiThread(() -> {
+                                    binding.txtPatientName.setText("Paciente: " + p.getName() + " (ID " + p.getId() + ")");
+                                });
+                            }
+                        } catch (Exception ignored) {}
+                    }).start();
                 }
             });
         }

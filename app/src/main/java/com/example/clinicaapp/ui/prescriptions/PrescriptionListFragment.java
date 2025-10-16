@@ -32,10 +32,12 @@ public class PrescriptionListFragment extends Fragment implements PrescriptionAd
         binding.recycler.setLayoutManager(new LinearLayoutManager(getContext()));
         binding.recycler.setAdapter(adapter);
 
-        viewModel.getAll().observe(getViewLifecycleOwner(), (List<Prescription> list) -> {
+        viewModel.getAllPrescriptions().observe(getViewLifecycleOwner(), (List<Prescription> list) -> {
             adapter.submit(list);
             binding.empty.setVisibility(list == null || list.isEmpty() ? View.VISIBLE : View.GONE);
         });
+
+
 
         binding.fabAdd.setOnClickListener(v -> openForm(-1));
 

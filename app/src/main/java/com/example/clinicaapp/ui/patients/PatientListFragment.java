@@ -41,10 +41,11 @@ public class PatientListFragment extends Fragment implements PatientAdapter.OnPa
 
         new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
             @Override public boolean onMove(@NonNull RecyclerView rv, @NonNull RecyclerView.ViewHolder v1, @NonNull RecyclerView.ViewHolder v2) { return false; }
-            @Override public void onSwiped(@NonNull RecyclerView.ViewHolder vh, int dir) {
+            @Override
+            public void onSwiped(@NonNull RecyclerView.ViewHolder vh, int dir) {
                 Patient item = adapter.getAt(vh.getAdapterPosition());
-                viewModel.deleteById(item.getId());
-                Toast.makeText(getContext(), "Paciente eliminado", Toast.LENGTH_SHORT).show();
+                viewModel.deletePatientAndRecord(item);
+                Toast.makeText(getContext(), "Paciente y expediente eliminados", Toast.LENGTH_SHORT).show();
             }
         }).attachToRecyclerView(binding.recycler);
     }

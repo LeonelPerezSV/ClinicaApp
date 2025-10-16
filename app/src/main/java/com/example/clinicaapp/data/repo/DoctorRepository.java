@@ -56,4 +56,9 @@ public class DoctorRepository {
     public LiveData<Doctor> getById(int id) {
         return dao.getById(id);
     }
+
+    // 🔹 Obtener todos los doctores de forma sincrónica (sin LiveData)
+    public List<Doctor> getAllList() {
+        return dao.getAllDoctorsList();
+    }
 }

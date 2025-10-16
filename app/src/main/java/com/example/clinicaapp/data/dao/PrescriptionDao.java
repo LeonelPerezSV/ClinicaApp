@@ -32,8 +32,10 @@ public interface PrescriptionDao {
     @Query("SELECT * FROM prescriptions ORDER BY date DESC")
     LiveData<List<Prescription>> getAll();
 
+
     @Query("SELECT * FROM prescriptions WHERE id = :id LIMIT 1")
-    Prescription findById(int id);
+    LiveData<Prescription> findById(int id);
+
 
     @Query("SELECT * FROM prescriptions WHERE patientId = :patientId ORDER BY date DESC")
     LiveData<List<Prescription>> getByPatient(int patientId);
