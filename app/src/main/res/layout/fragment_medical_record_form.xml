@@ -2,12 +2,38 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:padding="16dp">
 
+
+
     <LinearLayout
+
+
         android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/bannerWarning"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            app:cardBackgroundColor="#FFF9C4"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="2dp">
+
+            <TextView
+                android:id="@+id/txtBannerMessage"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="⚠️ Este expediente pertenece a un paciente y no puede eliminarse directamente."
+                android:textColor="#795548"
+                android:textStyle="bold"
+                android:padding="12dp"
+                android:textSize="14sp"/>
+        </com.google.android.material.card.MaterialCardView>
+
 
         <TextView
             android:id="@+id/txtPatientName"

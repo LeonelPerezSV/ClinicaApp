@@ -1,38 +1,50 @@
 package com.example.clinicaapp.ui.appointments;
 
-import android.app.AlertDialog;
-import android.content.Context;
 import android.content.SharedPreferences;
-import android.graphics.Canvas;
-import android.graphics.Paint;
-import android.graphics.pdf.PdfDocument;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.*;
-import android.widget.ArrayAdapter;
-import android.widget.Toast;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
+import android.widget.*;
+import androidx.annotation.*;
+import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
-import com.example.clinicaapp.data.db.AppDatabase;
 import com.example.clinicaapp.data.entities.Appointment;
-import com.example.clinicaapp.data.entities.Patient;
 import com.example.clinicaapp.data.entities.Doctor;
+import com.example.clinicaapp.data.entities.Patient;
+import com.example.clinicaapp.data.repo.DoctorRepository;
+import com.example.clinicaapp.data.db.AppDatabase;
 import com.example.clinicaapp.databinding.FragmentAppointmentFormBinding;
 import com.example.clinicaapp.viewmodel.AppointmentViewModel;
+import com.google.android.material.datepicker.MaterialDatePicker;
+import com.google.android.material.timepicker.MaterialTimePicker;
+import com.google.android.material.timepicker.TimeFormat;
+
+import android.app.AlertDialog;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.pdf.PdfDocument;
+import android.content.Intent;
+import android.content.Context;
+import android.widget.ArrayAdapter;
+import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.Executors;
+import java.util.Locale;
+import java.util.stream.Collectors;
 
 public class AppointmentFormFragment extends Fragment {
 
     private static final String ARG_ID = "arg_id";
 
+    // ✅ Versión original (para compatibilidad)
     public static AppointmentFormFragment newInstance(int id) {
         Bundle b = new Bundle();
         b.putInt(ARG_ID, id);
@@ -41,17 +53,22 @@ public class AppointmentFormFragment extends Fragment {
         return f;
     }
 
+    // ✅ Nueva versión sobrecargada (corrige error en AppointmentListFragment)
+    public static AppointmentFormFragment newInstance(int id, boolean readOnly) {
+        Bundle b = new Bundle();
+        b.putInt(ARG_ID, id);
+        b.putBoolean("readOnly", readOnly);
+        AppointmentFormFragment f = new AppointmentFormFragment();
+        f.setArguments(b);
+        return f;
+    }
+
     private FragmentAppointmentFormBinding binding;
     private AppointmentViewModel viewModel;
     private Integer currentId = null;
-
-    // IDs del usuario logueado
-    private long loggedUserId;
-    private boolean isDoctor;
-
-    // 🔹 Mapas para vincular los textos mostrados con IDs reales
-    private Map<String, Integer> patientMap = new HashMap<>();
-    private Map<String, Integer> doctorMap = new HashMap<>();
+    private Doctor loggedDoctor = null;
+    private Integer preselectedPatientId = null;
+    private boolean isEditMode = false;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -64,161 +81,193 @@ public class AppointmentFormFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         viewModel = new ViewModelProvider(this).get(AppointmentViewModel.class);
 
-        // ⚙️ Sesión / rol actual
-        SharedPreferences prefs = requireActivity().getSharedPreferences("ClinicaAppPrefs", Context.MODE_PRIVATE);
-        String type = prefs.getString("user_type", "Paciente");
-        loggedUserId = prefs.getLong("user_id", 0);
-        isDoctor = "Doctor".equalsIgnoreCase(type);
+        // Detectar usuario logueado
+        SharedPreferences prefs = requireContext().getSharedPreferences("ClinicaAppPrefs", Context.MODE_PRIVATE);
+        String userType = prefs.getString("user_type", "");
+        String userName = prefs.getString("user_name", "");
 
-        // 🔹 Cargar dropdowns dinámicos
-        cargarPacientes();
-        cargarDoctores();
-
-        // 🔹 Bloquear campos según tipo de usuario
-        if (isDoctor) {
-            binding.inputDoctorId.setText(String.valueOf(loggedUserId));
-            binding.inputDoctorId.setEnabled(false);
-        } else {
-            binding.inputPatientId.setText(String.valueOf(loggedUserId));
-            binding.inputPatientId.setEnabled(false);
-        }
-
-        // 🔹 Cargar datos si es edición
-        int id = getArguments() != null ? getArguments().getInt(ARG_ID, -1) : -1;
-        if (id != -1) {
-            currentId = id;
-            viewModel.getById(id).observe(getViewLifecycleOwner(), a -> {
-                if (a != null) {
-                    binding.inputPatientId.setText(String.valueOf(a.getPatientId()));
-                    binding.inputDoctorId.setText(String.valueOf(a.getDoctorId()));
-                    binding.inputDate.setText(a.getDate());
-                    binding.inputTime.setText(a.getTime());
-                    binding.inputReason.setText(a.getReason());
-                    binding.inputStatus.setText(a.getStatus());
-                    binding.btnDelete.setVisibility(View.VISIBLE);
+        if ("Doctor".equalsIgnoreCase(userType)) {
+            try {
+                DoctorRepository repo = new DoctorRepository(requireContext());
+                List<Doctor> all = repo.getAllList();
+                for (Doctor d : all) {
+                    if (d.getName().trim().equalsIgnoreCase(userName.trim())) {
+                        loggedDoctor = d;
+                        break;
+                    }
                 }
-            });
+
+                if (loggedDoctor != null) {
+                    binding.spinnerDoctor.setVisibility(View.GONE);
+                    TextView fixedDoctor = new TextView(requireContext());
+                    fixedDoctor.setText("👨‍⚕️ Doctor: " + loggedDoctor.getName());
+                    fixedDoctor.setTextSize(16f);
+                    fixedDoctor.setPadding(0, 16, 0, 16);
+                    ((ViewGroup) binding.spinnerDoctor.getParent()).addView(fixedDoctor, 2);
+                } else {
+                    Toast.makeText(getContext(), "No se encontró el perfil del doctor", Toast.LENGTH_SHORT).show();
+                }
+            } catch (Exception e) {
+                Toast.makeText(getContext(), "Error al cargar el doctor", Toast.LENGTH_SHORT).show();
+            }
         }
 
-        binding.btnSave.setOnClickListener(v -> guardarCita());
-        binding.btnCancel.setOnClickListener(v -> requireActivity().getSupportFragmentManager().popBackStack());
-        binding.btnExportPdf.setOnClickListener(v -> generarPDF());
-
-        // ✅ Eliminar con confirmación
-        binding.btnDelete.setOnClickListener(v -> {
-            if (currentId == null) return;
-            new AlertDialog.Builder(requireContext())
-                    .setTitle("Eliminar cita")
-                    .setMessage("¿Deseas eliminar esta cita?")
-                    .setPositiveButton("Eliminar", (d, w) -> eliminarCita(currentId))
-                    .setNegativeButton("Cancelar", null)
-                    .show();
-        });
-    }
-
-    /**
-     * 🔸 Carga dinámica de pacientes desde Room
-     */
-    private void cargarPacientes() {
         Executors.newSingleThreadExecutor().execute(() -> {
             AppDatabase db = AppDatabase.getInstance(requireContext());
             List<Patient> patients = db.patientDao().getAllPatientsList();
-
-            List<String> nombres = new ArrayList<>();
-            patientMap.clear();
-
-            for (Patient p : patients) {
-                String display = "#" + p.getId() + " - " + p.getFirstName() + " " + p.getLastName();
-                nombres.add(display);
-                patientMap.put(display, p.getId());
-            }
-
-            requireActivity().runOnUiThread(() -> {
-                ArrayAdapter<String> adapter = new ArrayAdapter<>(
-                        requireContext(),
-                        android.R.layout.simple_dropdown_item_1line,
-                        nombres
-                );
-                binding.inputPatientId.setAdapter(adapter);
-            });
-        });
-    }
-
-    /**
-     * 🔸 Carga dinámica de doctores desde Room
-     */
-    private void cargarDoctores() {
-        Executors.newSingleThreadExecutor().execute(() -> {
-            AppDatabase db = AppDatabase.getInstance(requireContext());
             List<Doctor> doctors = db.doctorDao().getAllDoctorsList();
 
-            List<String> nombres = new ArrayList<>();
-            doctorMap.clear();
-
-            for (Doctor d : doctors) {
-                String display = "#" + d.getId() + " - " + d.getName();
-                if (d.getSpecialty() != null && !d.getSpecialty().isEmpty()) {
-                    display += " (" + d.getSpecialty() + ")";
-                }
-                nombres.add(display);
-                doctorMap.put(display, d.getId());
-            }
-
             requireActivity().runOnUiThread(() -> {
-                ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                // Pacientes
+                ArrayAdapter<String> pAdapter = new ArrayAdapter<>(
                         requireContext(),
-                        android.R.layout.simple_dropdown_item_1line,
-                        nombres
+                        android.R.layout.simple_spinner_item,
+                        patients.stream().map(p -> p.getId() + " - " + p.getName()).collect(Collectors.toList())
                 );
-                binding.inputDoctorId.setAdapter(adapter);
+                pAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                binding.spinnerPatient.setAdapter(pAdapter);
+
+                // Doctores
+                ArrayAdapter<String> dAdapter = new ArrayAdapter<>(
+                        requireContext(),
+                        android.R.layout.simple_spinner_item,
+                        doctors.stream().map(d -> d.getId() + " - " + d.getName()).collect(Collectors.toList())
+                );
+                dAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                binding.spinnerDoctor.setAdapter(dAdapter);
+
+                if (getArguments() != null && getArguments().containsKey(ARG_ID))
+                    cargarCitaExistente(getArguments().getInt(ARG_ID));
             });
+        });
+
+        // Estados
+        String[] estados = {"Pendiente", "Completada", "Cancelada"};
+        ArrayAdapter<String> statusAdapter = new ArrayAdapter<>(requireContext(),
+                android.R.layout.simple_dropdown_item_1line, estados);
+        binding.inputStatus.setAdapter(statusAdapter);
+        binding.inputStatus.setEnabled(loggedDoctor != null);
+
+        // Fecha
+        binding.inputDate.setOnClickListener(v -> {
+            MaterialDatePicker<Long> picker = MaterialDatePicker.Builder.datePicker()
+                    .setTitleText("Seleccionar fecha")
+                    .build();
+            picker.addOnPositiveButtonClickListener(selection -> {
+                String d = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date(selection));
+                binding.inputDate.setText(d);
+            });
+            picker.show(getParentFragmentManager(), "datePicker");
+        });
+
+        // Hora
+        binding.inputTime.setOnClickListener(v -> {
+            MaterialTimePicker picker = new MaterialTimePicker.Builder()
+                    .setTimeFormat(TimeFormat.CLOCK_24H)
+                    .setHour(9)
+                    .setMinute(0)
+                    .setTitleText("Seleccionar hora")
+                    .build();
+
+            picker.addOnPositiveButtonClickListener(view1 ->
+                    binding.inputTime.setText(String.format(Locale.getDefault(), "%02d:%02d", picker.getHour(), picker.getMinute()))
+            );
+            picker.show(getParentFragmentManager(), "timePicker");
+        });
+
+        binding.btnSave.setOnClickListener(v -> guardarCita());
+        binding.btnExportPdf.setOnClickListener(v -> exportPdf());
+        binding.btnCancel.setOnClickListener(v -> requireActivity().getSupportFragmentManager().popBackStack());
+
+        // ✅ Aplicar modo lectura si viene de paciente
+        boolean readOnly = getArguments() != null && getArguments().getBoolean("readOnly", false);
+        if (readOnly) {
+            binding.btnSave.setVisibility(View.GONE);
+            binding.btnDelete.setVisibility(View.GONE);
+            binding.spinnerPatient.setEnabled(false);
+            binding.spinnerDoctor.setEnabled(false);
+            binding.inputDate.setEnabled(false);
+            binding.inputTime.setEnabled(false);
+            binding.inputStatus.setEnabled(false);
+            binding.inputReason.setEnabled(false);
+        }
+    }
+
+    private void cargarCitaExistente(int id) {
+        viewModel.getById(id).observe(getViewLifecycleOwner(), a -> {
+            if (a != null) {
+                isEditMode = true;
+                currentId = id;
+                preselectedPatientId = a.getPatientId();
+
+                binding.inputDate.setText(a.getDate());
+                binding.inputTime.setText(a.getTime());
+                binding.inputReason.setText(a.getReason());
+                binding.inputStatus.setText(a.getStatus());
+
+                trySelectPatientInSpinner();
+                binding.spinnerDoctor.setEnabled(false);
+                binding.btnDelete.setVisibility(View.VISIBLE);
+
+                binding.btnDelete.setOnClickListener(v -> {
+                    viewModel.deleteById(a.getId());
+                    Toast.makeText(getContext(), "Cita eliminada", Toast.LENGTH_SHORT).show();
+                    requireActivity().getSupportFragmentManager().popBackStack();
+                });
+            }
         });
     }
 
-    /**
-     * 🔸 Guardar cita en la base de datos
-     */
-    private void guardarCita() {
-        String patientStr = binding.inputPatientId.getText().toString().trim();
-        String doctorStr  = binding.inputDoctorId.getText().toString().trim();
-        String dateStr    = binding.inputDate.getText().toString().trim();
-        String timeStr    = binding.inputTime.getText().toString().trim();
+    private void trySelectPatientInSpinner() {
+        if (!isEditMode || preselectedPatientId == null || binding.spinnerPatient.getAdapter() == null) return;
 
-        if (TextUtils.isEmpty(patientStr) || TextUtils.isEmpty(doctorStr) ||
-                TextUtils.isEmpty(dateStr) || TextUtils.isEmpty(timeStr)) {
-            Toast.makeText(getContext(), "Paciente, Doctor, Fecha y Hora son obligatorios", Toast.LENGTH_SHORT).show();
+        ArrayAdapter<?> adapter = (ArrayAdapter<?>) binding.spinnerPatient.getAdapter();
+        for (int i = 0; i < adapter.getCount(); i++) {
+            String item = (String) adapter.getItem(i);
+            if (item.startsWith(preselectedPatientId + " -")) {
+                binding.spinnerPatient.setSelection(i);
+                binding.spinnerPatient.setEnabled(false);
+                break;
+            }
+        }
+    }
+
+    private void guardarCita() {
+        String selectedPatient;
+        if (isEditMode && preselectedPatientId != null) {
+            selectedPatient = preselectedPatientId + " - bloqueado";
+        } else {
+            selectedPatient = (String) binding.spinnerPatient.getSelectedItem();
+        }
+
+        if (selectedPatient == null || TextUtils.isEmpty(binding.inputDate.getText()) ||
+                TextUtils.isEmpty(binding.inputTime.getText())) {
+            Toast.makeText(getContext(), "Complete todos los campos", Toast.LENGTH_SHORT).show();
             return;
+        }
+
+        int patientId = Integer.parseInt(selectedPatient.split(" - ")[0]);
+        int doctorId;
+
+        if (loggedDoctor != null) {
+            doctorId = loggedDoctor.getId();
+        } else {
+            String selectedDoctor = (String) binding.spinnerDoctor.getSelectedItem();
+            if (selectedDoctor == null) {
+                Toast.makeText(getContext(), "Seleccione un doctor", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            doctorId = Integer.parseInt(selectedDoctor.split(" - ")[0]);
         }
 
         Appointment a = new Appointment();
         if (currentId != null) a.setId(currentId);
-
-        // 🔒 Forzar IDs correctos según rol
-        if (isDoctor) {
-            a.setDoctorId((int) loggedUserId);
-
-            Integer selectedPatientId = patientMap.get(patientStr);
-            if (selectedPatientId == null) {
-                Toast.makeText(getContext(), "Seleccione un paciente válido", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            a.setPatientId(selectedPatientId);
-
-        } else {
-            a.setPatientId((int) loggedUserId);
-
-            Integer selectedDoctorId = doctorMap.get(doctorStr);
-            if (selectedDoctorId == null) {
-                Toast.makeText(getContext(), "Seleccione un doctor válido", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            a.setDoctorId(selectedDoctorId);
-        }
-
-        a.setDate(dateStr);
-        a.setTime(timeStr);
-        a.setReason(binding.inputReason.getText().toString().trim());
+        a.setDoctorId(doctorId);
+        a.setPatientId(patientId);
+        a.setDate(binding.inputDate.getText().toString().trim());
+        a.setTime(binding.inputTime.getText().toString().trim());
         a.setStatus(binding.inputStatus.getText().toString().trim());
+        a.setReason(binding.inputReason.getText().toString().trim());
 
         if (currentId == null) {
             viewModel.insert(a);
@@ -231,59 +280,93 @@ public class AppointmentFormFragment extends Fragment {
         requireActivity().getSupportFragmentManager().popBackStack();
     }
 
-    private void eliminarCita(int id) {
-        Executors.newSingleThreadExecutor().execute(() -> {
-            AppDatabase db = AppDatabase.getInstance(requireContext());
-            db.appointmentDao().deleteById(id);
-            requireActivity().runOnUiThread(() -> {
-                Toast.makeText(requireContext(), "Cita eliminada", Toast.LENGTH_SHORT).show();
-                requireActivity().getSupportFragmentManager().popBackStack();
-            });
-        });
-    }
-
-    private void generarPDF() {
-        if (currentId == null) {
-            Toast.makeText(requireContext(), "Guarda la cita antes de exportar a PDF", Toast.LENGTH_SHORT).show();
+    private void exportPdf() {
+        String selectedPatient = (String) binding.spinnerPatient.getSelectedItem();
+        if (selectedPatient == null) {
+            Toast.makeText(getContext(), "Seleccione un paciente", Toast.LENGTH_SHORT).show();
             return;
         }
-        Executors.newSingleThreadExecutor().execute(() -> {
-            AppDatabase db = AppDatabase.getInstance(requireContext());
-            Appointment a = db.appointmentDao().getByIdDirect(currentId);
-            if (a != null) requireActivity().runOnUiThread(() -> exportarPDF(a));
-        });
-    }
 
-    private void exportarPDF(Appointment a) {
+        String date = binding.inputDate.getText().toString().trim();
+        String time = binding.inputTime.getText().toString().trim();
+        String status = binding.inputStatus.getText().toString().trim();
+        String reason = binding.inputReason.getText().toString().trim();
+
+        int patientId = Integer.parseInt(selectedPatient.split(" - ")[0]);
+        String patientName = selectedPatient.split(" - ")[1];
+
+        int doctorId;
+        String doctorName;
+
+        if (loggedDoctor != null) {
+            doctorId = loggedDoctor.getId();
+            doctorName = loggedDoctor.getName();
+        } else {
+            String selectedDoctor = (String) binding.spinnerDoctor.getSelectedItem();
+            doctorId = Integer.parseInt(selectedDoctor.split(" - ")[0]);
+            doctorName = selectedDoctor.split(" - ")[1];
+        }
+
         try {
-            File pdfFile = new File(requireContext().getExternalFilesDir(null), "Cita_" + a.getId() + ".pdf");
             PdfDocument doc = new PdfDocument();
-            PdfDocument.PageInfo info = new PdfDocument.PageInfo.Builder(300, 600, 1).create();
+            PdfDocument.PageInfo info = new PdfDocument.PageInfo.Builder(595, 842, 1).create();
             PdfDocument.Page page = doc.startPage(info);
-
             Canvas canvas = page.getCanvas();
-            Paint paint = new Paint();
-            paint.setTextSize(12);
 
-            int y = 30;
-            canvas.drawText("CLÍNICA APP - CITA", 20, y, paint); y += 30;
-            canvas.drawText("Doctor ID: " + a.getDoctorId(), 20, y, paint); y += 20;
-            canvas.drawText("Paciente ID: " + a.getPatientId(), 20, y, paint); y += 20;
-            canvas.drawText("Fecha: " + a.getDate(), 20, y, paint); y += 20;
-            canvas.drawText("Hora: " + a.getTime(), 20, y, paint); y += 20;
-            canvas.drawText("Estado: " + a.getStatus(), 20, y, paint); y += 20;
-            canvas.drawText("Motivo: " + (a.getReason() == null ? "-" : a.getReason()), 20, y, paint);
+            Paint title = new Paint();
+            title.setTextSize(20f);
+            title.setFakeBoldText(true);
+
+            Paint text = new Paint();
+            text.setTextSize(14f);
+
+            int x = 40, y = 60, dy = 28;
+
+            canvas.drawText("CLINICAPP – Detalle de Cita Médica", x, y, title);
+            y += dy;
+            canvas.drawLine(x, y, info.getPageWidth() - x, y, text);
+            y += dy;
+
+            canvas.drawText("Fecha: " + date + "  Hora: " + time, x, y, text);
+            y += dy;
+            canvas.drawText("Paciente: " + patientId + " - " + patientName, x, y, text);
+            y += dy;
+            canvas.drawText("Doctor: " + doctorId + " - " + doctorName, x, y, text);
+            y += dy;
+            canvas.drawText("Estado: " + status, x, y, text);
+            y += dy;
+
+            canvas.drawText("Motivo de la Cita:", x, y, title);
+            y += dy;
+            canvas.drawText(TextUtils.isEmpty(reason) ? "—" : reason, x, y, text);
 
             doc.finishPage(page);
-            try (FileOutputStream out = new FileOutputStream(pdfFile)) {
-                doc.writeTo(out);
+
+            File outDir = requireContext().getExternalFilesDir(null);
+            File pdfFile = new File(outDir, "cita_" + System.currentTimeMillis() + ".pdf");
+            try (FileOutputStream fos = new FileOutputStream(pdfFile)) {
+                doc.writeTo(fos);
             }
             doc.close();
 
-            Toast.makeText(requireContext(), "PDF generado: " + pdfFile.getAbsolutePath(), Toast.LENGTH_LONG).show();
-        } catch (Exception e) {
+            openPdfFile(pdfFile);
+
+        } catch (IOException e) {
             e.printStackTrace();
-            Toast.makeText(requireContext(), "Error al generar PDF", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), "Error al generar PDF", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void openPdfFile(File file) {
+        try {
+            Uri uri = FileProvider.getUriForFile(requireContext(),
+                    requireContext().getPackageName() + ".provider", file);
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setDataAndType(uri, "application/pdf");
+            intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            startActivity(Intent.createChooser(intent, "Abrir con"));
+        } catch (Exception e) {
+            Toast.makeText(getContext(), "No se encontró visor PDF", Toast.LENGTH_SHORT).show();
         }
     }
 }

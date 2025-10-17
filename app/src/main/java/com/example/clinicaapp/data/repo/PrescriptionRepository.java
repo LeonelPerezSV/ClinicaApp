@@ -23,12 +23,16 @@ public class PrescriptionRepository {
         return dao.getAll();
     }
 
-    public void insert(Prescription prescription) {
-        executor.execute(() -> dao.insert(prescription));
+    public LiveData<List<Prescription>> getByPatient(int patientId) {
+        return dao.getByPatient(patientId);
     }
 
-    public void insertAll(List<Prescription> list) {
-        executor.execute(() -> dao.insertAll(list));
+    public LiveData<Prescription> getById(int id) {
+        return dao.findById(id);
+    }
+
+    public void insert(Prescription prescription) {
+        executor.execute(() -> dao.insert(prescription));
     }
 
     public void update(Prescription prescription) {
@@ -39,19 +43,11 @@ public class PrescriptionRepository {
         executor.execute(() -> dao.delete(prescription));
     }
 
-    public void deleteAll() {
-        executor.execute(dao::deleteAll);
-    }
-
-    public LiveData<List<Prescription>> getByPatient(int patientId) {
-        return dao.getByPatient(patientId);
-    }
-
     public void deleteById(int id) {
         executor.execute(() -> dao.deleteById(id));
     }
 
-    public LiveData<Prescription> getById(int id) {
-        return dao.findById(id);
+    public void deleteAll() {
+        executor.execute(dao::deleteAll);
     }
 }

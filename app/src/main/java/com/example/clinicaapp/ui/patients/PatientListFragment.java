@@ -12,6 +12,7 @@ import com.example.clinicaapp.data.entities.Patient;
 import com.example.clinicaapp.databinding.FragmentPatientListBinding;
 import com.example.clinicaapp.viewmodel.PatientViewModel;
 import java.util.List;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 public class PatientListFragment extends Fragment implements PatientAdapter.OnPatientClick {
 
@@ -40,14 +41,33 @@ public class PatientListFragment extends Fragment implements PatientAdapter.OnPa
         binding.fabAdd.setOnClickListener(v -> openForm(-1));
 
         new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
-            @Override public boolean onMove(@NonNull RecyclerView rv, @NonNull RecyclerView.ViewHolder v1, @NonNull RecyclerView.ViewHolder v2) { return false; }
+            @Override
+            public boolean onMove(@NonNull RecyclerView rv, @NonNull RecyclerView.ViewHolder v1, @NonNull RecyclerView.ViewHolder v2) {
+                return false;
+            }
+
             @Override
             public void onSwiped(@NonNull RecyclerView.ViewHolder vh, int dir) {
                 Patient item = adapter.getAt(vh.getAdapterPosition());
-                viewModel.deletePatientAndRecord(item);
-                Toast.makeText(getContext(), "Paciente y expediente eliminados", Toast.LENGTH_SHORT).show();
+
+                new MaterialAlertDialogBuilder(requireContext())
+                        .setTitle("Confirmar eliminación")
+                        .setMessage("¿Desea eliminar al paciente \"" + item.getName() + "\" y todos sus datos asociados (expediente y recetas)?")
+                        .setIcon(android.R.drawable.ic_dialog_alert)
+                        .setCancelable(false)
+                        .setPositiveButton("Eliminar", (dialog, which) -> {
+                            viewModel.deletePatientCascade(item);
+                            Toast.makeText(getContext(), "Paciente y datos asociados eliminados", Toast.LENGTH_SHORT).show();
+                        })
+                        .setNegativeButton("Cancelar", (dialog, which) -> {
+                            adapter.notifyItemChanged(vh.getAdapterPosition());
+                            dialog.dismiss();
+                        })
+                        .show();
             }
         }).attachToRecyclerView(binding.recycler);
+
+
     }
 
     private void openForm(int id) {

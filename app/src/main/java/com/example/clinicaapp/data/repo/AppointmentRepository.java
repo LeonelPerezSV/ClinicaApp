@@ -72,4 +72,15 @@ public class AppointmentRepository {
         // Placeholder: lógica de sincronización si tuvieras API.
     }
 
+    public List<Appointment> getAllSyncByPatient(int patientId) {
+        return dao.getAllSyncByPatient(patientId);
+    }
+
+    public void deleteByPatientIdSync(int patientId) {
+        dao.deleteByPatientId(patientId);
+    }
+
+    public void deleteSync(Appointment a) { dao.delete(a); }
+
+
 }

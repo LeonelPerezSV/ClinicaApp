@@ -1,13 +1,15 @@
 package com.example.clinicaapp.viewmodel;
 
 import android.app.Application;
+
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
+
+import com.example.clinicaapp.data.db.AppDatabase;
 import com.example.clinicaapp.data.entities.Patient;
-import com.example.clinicaapp.data.entities.MedicalRecord;
-import com.example.clinicaapp.data.repo.MedicalRecordRepository;
 import com.example.clinicaapp.data.repo.PatientRepository;
+
 import java.util.List;
 
 public class PatientViewModel extends AndroidViewModel {
@@ -21,38 +23,43 @@ public class PatientViewModel extends AndroidViewModel {
         allPatients = repository.getAll();
     }
 
-    public LiveData<List<Patient>> getAllPatients() { return allPatients; }
-    public void insert(Patient patient) { repository.insert(patient); }
-    public void update(Patient patient) { repository.update(patient); }
-    public void delete(Patient patient) { repository.delete(patient); }
-
     public LiveData<List<Patient>> getAll() {
-        return repository.getAll();
-    }
-
-    public void deleteById(int id) {
-        repository.deleteById(id);
+        return allPatients;
     }
 
     public LiveData<Patient> getById(int id) {
         return repository.getById(id);
     }
 
-    // ✅ Eliminar paciente y expediente asociado
-    public void deletePatientAndRecord(Patient patient) {
+    public void insert(Patient patient) {
+        repository.insert(patient);
+    }
+
+    public void update(Patient patient) {
+        repository.update(patient);
+    }
+
+    public void delete(Patient patient) {
+        repository.delete(patient);
+    }
+
+    public void deleteById(int id) {
+        repository.deleteById(id);
+    }
+
+    public void deleteAll() {
+        repository.deleteAll();
+    }
+
+    // 🔹 Eliminar paciente con cascada (citas, recetas, expediente)
+    public void deletePatientCascade(Patient patient) {
         new Thread(() -> {
-            try {
-                MedicalRecordRepository recordRepo = new MedicalRecordRepository(getApplication());
-                List<MedicalRecord> records = recordRepo.getByPatient(patient.getId()).getValue();
-                if (records != null) {
-                    for (MedicalRecord r : records) {
-                        recordRepo.delete(r);
-                    }
-                }
-                repository.delete(patient);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            AppDatabase db = AppDatabase.getInstance(getApplication());
+            int patientId = patient.getId();
+            db.prescriptionDao().deleteByPatientId(patientId);
+            db.appointmentDao().deleteByPatientId(patientId);
+            db.medicalRecordDao().deleteByPatientId(patientId);
+            db.patientDao().delete(patient);
         }).start();
     }
 }

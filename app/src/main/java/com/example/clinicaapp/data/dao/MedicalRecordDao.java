@@ -40,4 +40,12 @@ public interface MedicalRecordDao {
 
     @Query("SELECT * FROM medical_records WHERE patientId = :patientId ORDER BY id DESC")
     LiveData<List<MedicalRecord>> getByPatient(int patientId);
+
+    @Query("SELECT * FROM medical_records WHERE patientId = :patientId")
+    List<MedicalRecord> getAllSyncByPatient(int patientId);
+
+    @Query("DELETE FROM medical_records WHERE patientId = :patientId")
+    void deleteByPatientId(int patientId);
+
+
 }

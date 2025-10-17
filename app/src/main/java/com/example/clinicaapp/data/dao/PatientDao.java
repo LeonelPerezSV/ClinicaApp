@@ -49,4 +49,10 @@ public interface PatientDao {
 
     @Query("SELECT * FROM patients ORDER BY lastName ASC")
     List<Patient> getAllPatientsList();
+
+    @Query("SELECT id FROM patients WHERE userId = :userId LIMIT 1")
+    int getPatientIdByUserId(int userId);
+
+
+
 }

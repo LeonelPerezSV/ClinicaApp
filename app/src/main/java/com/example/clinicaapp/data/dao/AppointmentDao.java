@@ -61,4 +61,17 @@ public interface AppointmentDao {
 
     @Query("SELECT * FROM appointments WHERE doctorId = :doctorId ORDER BY date DESC")
     LiveData<List<Appointment>> getByDoctor(int doctorId);
+
+    @Query("SELECT * FROM appointments WHERE patientId = :patientId")
+    List<Appointment> getAllSyncByPatient(int patientId);
+
+    @Query("DELETE FROM appointments WHERE patientId = :patientId")
+    void deleteByPatientId(int patientId);
+
+    @Query("SELECT * FROM appointments ORDER BY date DESC, time DESC")
+    List<Appointment> getAllSync();
+
+
+
+
 }

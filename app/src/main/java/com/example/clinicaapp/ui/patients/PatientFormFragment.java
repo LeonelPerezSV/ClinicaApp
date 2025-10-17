@@ -122,13 +122,21 @@ public class PatientFormFragment extends Fragment {
     }
 
     private void eliminarPaciente(int id) {
-        Executors.newSingleThreadExecutor().execute(() -> {
-            AppDatabase db = AppDatabase.getInstance(requireContext());
-            db.patientDao().deleteById(id);
-            requireActivity().runOnUiThread(() -> {
-                Toast.makeText(requireContext(), "Paciente eliminado", Toast.LENGTH_SHORT).show();
-                requireActivity().getSupportFragmentManager().popBackStack();
-            });
-        });
+        // Obtén el paciente sincrónicamente y usa la cascada del ViewModel
+        new Thread(() -> {
+            Patient p = AppDatabase.getInstance(requireContext()).patientDao().findById(id);
+            if (p != null) {
+                requireActivity().runOnUiThread(() -> {
+                    viewModel.deletePatientCascade(p);
+                    Toast.makeText(requireContext(), "Paciente y datos asociados eliminados", Toast.LENGTH_SHORT).show();
+                    requireActivity().getSupportFragmentManager().popBackStack();
+                });
+            } else {
+                requireActivity().runOnUiThread(() ->
+                        Toast.makeText(requireContext(), "Paciente no encontrado", Toast.LENGTH_SHORT).show()
+                );
+            }
+        }).start();
     }
+
 }

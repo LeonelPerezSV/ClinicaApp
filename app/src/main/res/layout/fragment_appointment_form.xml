@@ -1,167 +1,163 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:padding="20dp"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/scrollViewAppointmentForm"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:padding="16dp"
+    android:background="@color/backgroundLight"
+    tools:context=".ui.appointments.AppointmentFormFragment">
 
     <LinearLayout
+        android:id="@+id/layoutFormAppointment"
         android:orientation="vertical"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:paddingBottom="32dp">
 
-        <!-- Paciente (Dropdown) -->
-        <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+        <!-- 🧑 Paciente -->
+        <TextView
+            android:text="Seleccionar Paciente"
+            android:textStyle="bold"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Paciente"
-            app:endIconMode="dropdown_menu">
+            android:layout_marginTop="8dp" />
 
-            <com.google.android.material.textfield.MaterialAutoCompleteTextView
-                android:id="@+id/inputPatientId"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="none"
-                android:focusable="true"
-                android:clickable="true" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <!-- Doctor (Dropdown) -->
-        <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+        <Spinner
+            android:id="@+id/spinnerPatient"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Doctor"
-            android:layout_marginTop="12dp"
-            app:endIconMode="dropdown_menu">
+            android:background="@drawable/spinner_background"
+            android:padding="8dp" />
 
-            <com.google.android.material.textfield.MaterialAutoCompleteTextView
-                android:id="@+id/inputDoctorId"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="none"
-                android:focusable="true"
-                android:clickable="true" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <!-- Fecha -->
-        <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+        <!-- 👨‍⚕️ Doctor -->
+        <TextView
+            android:text="Seleccionar Doctor"
+            android:textStyle="bold"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Fecha"
+            android:layout_marginTop="12dp" />
+
+        <Spinner
+            android:id="@+id/spinnerDoctor"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/spinner_background"
+            android:padding="8dp" />
+
+        <!-- 📅 Fecha -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Fecha (YYYY-MM-DD)"
+            style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox.Dense"
             android:layout_marginTop="12dp">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/inputDate"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
                 android:focusable="false"
                 android:clickable="true"
-                android:inputType="date" />
+                android:inputType="date"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Hora -->
+        <!-- ⏰ Hora -->
         <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Hora"
+            android:hint="Hora (HH:mm)"
+            style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox.Dense"
             android:layout_marginTop="12dp">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/inputTime"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
                 android:focusable="false"
                 android:clickable="true"
-                android:inputType="time" />
+                android:inputType="time"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Motivo -->
+        <!-- ⚙️ Estado -->
         <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Motivo"
+            android:hint="Estado de la Cita"
+            style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox.Dense"
+            android:layout_marginTop="12dp">
+
+            <AutoCompleteTextView
+                android:id="@+id/inputStatus"
+                android:inputType="text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- 📝 Motivo -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Motivo de la cita"
+            style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox.Dense"
             android:layout_marginTop="12dp">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/inputReason"
+                android:inputType="textMultiLine"
+                android:minLines="3"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="text" />
+                android:layout_height="wrap_content" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Estado -->
-        <com.google.android.material.textfield.TextInputLayout
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Estado"
-            android:layout_marginTop="12dp">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/inputStatus"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="text" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <!-- Botones -->
+        <!-- 🔘 Botones -->
         <LinearLayout
-            android:orientation="horizontal"
-            android:gravity="center"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="20dp">
+            android:orientation="vertical"
+            android:layout_marginTop="24dp">
 
             <Button
                 android:id="@+id/btnSave"
-                android:text="Guardar"
-                android:layout_weight="1"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content" />
+                android:text="💾 Guardar Cita"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:backgroundTint="@color/brandPrimary"
+                android:textColor="@color/white"
+                android:textAllCaps="false" />
 
-            <Space
-                android:layout_width="12dp"
-                android:layout_height="wrap_content" />
+            <Button
+                android:id="@+id/btnExportPdf"
+                android:text="🧾 Exportar Cita (PDF)"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:backgroundTint="@color/brandAccent"
+                android:textColor="@color/white"
+                android:textAllCaps="false" />
+
+            <Button
+                android:id="@+id/btnDelete"
+                android:text="🗑 Eliminar Cita"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:backgroundTint="@color/errorColor"
+                android:textColor="@color/white"
+                android:textAllCaps="false"
+                android:visibility="gone" />
 
             <Button
                 android:id="@+id/btnCancel"
                 android:text="Cancelar"
-                android:layout_weight="1"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content" />
-        </LinearLayout>
-
-        <!-- Botones extra -->
-        <LinearLayout
-            android:orientation="horizontal"
-            android:gravity="center"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp">
-
-            <Button
-                android:id="@+id/btnDelete"
-                android:text="Eliminar"
-                android:layout_weight="1"
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:visibility="gone" />
+                android:layout_marginTop="8dp"
+                android:backgroundTint="@color/textSecondary"
+                android:textColor="@color/white"
+                android:textAllCaps="false" />
 
-            <Space
-                android:layout_width="12dp"
-                android:layout_height="wrap_content" />
-
-            <Button
-                android:id="@+id/btnExportPdf"
-                android:text="Exportar PDF"
-                android:layout_weight="1"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content" />
         </LinearLayout>
 
     </LinearLayout>

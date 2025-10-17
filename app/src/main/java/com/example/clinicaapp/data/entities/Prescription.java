@@ -3,13 +3,14 @@ package com.example.clinicaapp.data.entities;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 import androidx.room.Ignore;
+
 @Entity(tableName = "prescriptions")
 public class Prescription {
 
     @PrimaryKey(autoGenerate = true)
     private int id;
+
     private int patientId;
-    private int doctorId;
     private String date;
     private String medication;
     private String dosage;
@@ -18,9 +19,8 @@ public class Prescription {
     public Prescription() {}
 
     @Ignore
-    public Prescription(int patientId, int doctorId, String date, String medication, String dosage, String notes) {
+    public Prescription(int patientId, String date, String medication, String dosage, String notes) {
         this.patientId = patientId;
-        this.doctorId = doctorId;
         this.date = date;
         this.medication = medication;
         this.dosage = dosage;
@@ -32,9 +32,6 @@ public class Prescription {
 
     public int getPatientId() { return patientId; }
     public void setPatientId(int patientId) { this.patientId = patientId; }
-
-    public int getDoctorId() { return doctorId; }
-    public void setDoctorId(int doctorId) { this.doctorId = doctorId; }
 
     public String getDate() { return date; }
     public void setDate(String date) { this.date = date; }

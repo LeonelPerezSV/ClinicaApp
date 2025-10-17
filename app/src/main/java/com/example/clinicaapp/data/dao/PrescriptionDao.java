@@ -29,18 +29,23 @@ public interface PrescriptionDao {
     @Query("DELETE FROM prescriptions")
     void deleteAll();
 
+    // 🔹 Todas las recetas (para doctor)
     @Query("SELECT * FROM prescriptions ORDER BY date DESC")
     LiveData<List<Prescription>> getAll();
 
-
+    // 🔹 Receta por ID
     @Query("SELECT * FROM prescriptions WHERE id = :id LIMIT 1")
     LiveData<Prescription> findById(int id);
 
-
+    // 🔹 Recetas filtradas por paciente
     @Query("SELECT * FROM prescriptions WHERE patientId = :patientId ORDER BY date DESC")
     LiveData<List<Prescription>> getByPatient(int patientId);
 
-
+    // 🔹 Eliminar receta por ID
     @Query("DELETE FROM prescriptions WHERE id = :id")
     void deleteById(int id);
+
+    @Query("DELETE FROM prescriptions WHERE patientId = :patientId")
+    void deleteByPatientId(int patientId);
+
 }

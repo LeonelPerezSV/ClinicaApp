@@ -54,4 +54,10 @@ public class PatientRepository {
     public LiveData<Patient> getById(int id) {
         return dao.getById(id);
     }
+
+    // 🔹 Eliminación sincrónica (evita race conditions)
+    public void deleteSync(Patient patient) {
+        dao.delete(patient);
+    }
+
 }

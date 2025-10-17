@@ -120,7 +120,8 @@ public class RegisterActivity extends AppCompatActivity {
                                 firstName,
                                 lastName,
                                 username + "@clinicapp.com",
-                                "0000-0000"
+                                "0000-0000",
+                                user.getId() // 👈 Aquí se pasa el ID del usuario recién creado
                         );
 
                 // Insertar paciente y recuperar ID generado

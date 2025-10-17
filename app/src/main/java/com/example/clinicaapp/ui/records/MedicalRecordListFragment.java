@@ -34,19 +34,24 @@ public class MedicalRecordListFragment extends Fragment implements MedicalRecord
         binding.recycler.setLayoutManager(new LinearLayoutManager(getContext()));
         binding.recycler.setAdapter(adapter);
 
+        // 📋 Observa y muestra los expedientes existentes
         viewModel.getAll().observe(getViewLifecycleOwner(), (List<MedicalRecord> list) -> {
             adapter.submit(list);
             binding.empty.setVisibility(list == null || list.isEmpty() ? View.VISIBLE : View.GONE);
         });
 
-        binding.fabAdd.setOnClickListener(v -> openForm(-1));
+        // 🚫 Ocultar botón "Agregar expediente" (solo visualización y edición)
+        binding.fabAdd.setVisibility(View.GONE);
 
-        // 🔒 Bloquear eliminación directa
+        // 🟡 Bloquear eliminación directa
         binding.recycler.setOnLongClickListener(v -> {
-            Toast.makeText(getContext(), "El expediente no puede eliminarse directamente, depende del paciente.", Toast.LENGTH_LONG).show();
+            Toast.makeText(getContext(),
+                    "El expediente no puede eliminarse directamente, depende del paciente.",
+                    Toast.LENGTH_LONG).show();
             return true;
         });
     }
+
 
     private void openForm(int id) {
         Fragment f = MedicalRecordFormFragment.newInstance(id);

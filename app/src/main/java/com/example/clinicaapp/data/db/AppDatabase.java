@@ -30,7 +30,7 @@ import com.example.clinicaapp.data.entities.User;
                 Prescription.class,
                 MedicalRecord.class
         },
-        version = 3,
+        version = 10,
         exportSchema = false
 )
 

@@ -61,4 +61,18 @@ public class MedicalRecordRepository {
     public LiveData<MedicalRecord> getById(int id) {
         return dao.getById(id);
     }
+
+    public List<MedicalRecord> getAllSyncByPatient(int patientId) {
+        return dao.getAllSyncByPatient(patientId);
+    }
+
+    public void deleteSync(MedicalRecord record) {
+        dao.delete(record);
+    }
+
+    public void deleteByPatientIdSync(int patientId) {
+        dao.deleteByPatientId(patientId);
+    }
+
+
 }

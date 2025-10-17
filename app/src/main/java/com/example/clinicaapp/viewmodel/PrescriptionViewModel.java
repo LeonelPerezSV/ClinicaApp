@@ -7,11 +7,7 @@ import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 
 import com.example.clinicaapp.data.entities.Prescription;
-import com.example.clinicaapp.data.entities.Patient;
-import com.example.clinicaapp.data.entities.Doctor;
 import com.example.clinicaapp.data.repo.PrescriptionRepository;
-import com.example.clinicaapp.data.repo.PatientRepository;
-import com.example.clinicaapp.data.repo.DoctorRepository;
 
 import java.util.List;
 
@@ -26,45 +22,43 @@ public class PrescriptionViewModel extends AndroidViewModel {
         allPrescriptions = repository.getAll();
     }
 
-    // ==========================
-    // 🔹 CRUD de Prescriptions
-    // ==========================
+    // 🔹 Obtener todas las recetas (doctor)
     public LiveData<List<Prescription>> getAllPrescriptions() {
         return allPrescriptions;
     }
 
-    public LiveData<List<Prescription>> getByPatient(int patientId) {
+    // 🔹 Obtener recetas por paciente
+    public LiveData<List<Prescription>> getPrescriptionsByPatient(int patientId) {
         return repository.getByPatient(patientId);
     }
 
-    public void insert(Prescription prescription) {
-        repository.insert(prescription);
-    }
-
-    public void update(Prescription prescription) {
-        repository.update(prescription);
-    }
-
-    public void delete(Prescription prescription) {
-        repository.delete(prescription);
-    }
-
-    public void deleteById(int id) {
-        repository.deleteById(id);
-    }
-
+    // 🔹 Obtener receta por ID
     public LiveData<Prescription> getById(int id) {
         return repository.getById(id);
     }
 
-    // ==========================
-    // 🔹 Consultas auxiliares
-    // ==========================
-    public LiveData<List<Patient>> getAllPatients() {
-        return new PatientRepository(getApplication()).getAll();
+    // 🔹 Insertar receta
+    public void insert(Prescription prescription) {
+        repository.insert(prescription);
     }
 
-    public LiveData<List<Doctor>> getAllDoctors() {
-        return new DoctorRepository(getApplication()).getAll();
+    // 🔹 Actualizar receta
+    public void update(Prescription prescription) {
+        repository.update(prescription);
+    }
+
+    // 🔹 Eliminar receta
+    public void delete(Prescription prescription) {
+        repository.delete(prescription);
+    }
+
+    // 🔹 Eliminar receta por ID
+    public void deleteById(int id) {
+        repository.deleteById(id);
+    }
+
+    // 🔹 Eliminar todas las recetas
+    public void deleteAll() {
+        repository.deleteAll();
     }
 }

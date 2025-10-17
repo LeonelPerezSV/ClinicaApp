@@ -115,6 +115,9 @@ public class LoginActivity extends AppCompatActivity {
             prefs.edit()
                     .putString("user_type", safeType)
                     .putString("user_name", safeName)
+
+                    .putLong("user_id", user.getId())
+
                     .apply();
 
             Toast.makeText(this, "Bienvenido " + safeName, Toast.LENGTH_SHORT).show();

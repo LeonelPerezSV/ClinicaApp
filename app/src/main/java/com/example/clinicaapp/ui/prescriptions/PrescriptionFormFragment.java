@@ -1,7 +1,5 @@
 package com.example.clinicaapp.ui.prescriptions;
 
-import android.content.Intent;
-import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -12,20 +10,27 @@ import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.example.clinicaapp.data.db.AppDatabase;
+import com.example.clinicaapp.data.entities.Patient;
 import com.example.clinicaapp.data.entities.Prescription;
-import com.example.clinicaapp.data.entities.Doctor;
-import com.example.clinicaapp.data.repo.DoctorRepository;
 import com.example.clinicaapp.databinding.FragmentPrescriptionFormBinding;
+import com.example.clinicaapp.ui.appointments.AppointmentFormFragment;
+import com.google.android.material.datepicker.MaterialDatePicker;
+
+// 👇 FALTABA ESTE IMPORT
 import com.example.clinicaapp.viewmodel.PrescriptionViewModel;
 
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.pdf.PdfDocument;
-
+import android.content.Intent;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 public class PrescriptionFormFragment extends Fragment {
@@ -40,10 +45,24 @@ public class PrescriptionFormFragment extends Fragment {
         return f;
     }
 
+    // Permite abrir en modo solo lectura (paciente)
+    // ✅ NUEVO: versión sobrecargada para abrir en modo solo lectura (paciente)
+
+    public static PrescriptionFormFragment newInstance(int id, boolean readOnly) {
+        Bundle b = new Bundle();
+        b.putInt(ARG_ID, id);
+        b.putBoolean("readOnly", readOnly);
+        PrescriptionFormFragment f = new PrescriptionFormFragment();
+        f.setArguments(b);
+        return f;
+    }
+
+
     private FragmentPrescriptionFormBinding binding;
     private PrescriptionViewModel viewModel;
     private Integer currentId = null;
-    private Doctor loggedDoctor = null;
+    private Integer preselectedPatientId = null;
+    private boolean isEditMode = false;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -56,150 +75,126 @@ public class PrescriptionFormFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         viewModel = new ViewModelProvider(this).get(PrescriptionViewModel.class);
 
-        // =====================================================
-        // 👨‍⚕️ Detectar si el usuario logueado es un Doctor
-        // =====================================================
-        SharedPreferences prefs = requireContext().getSharedPreferences("ClinicaAppPrefs", requireContext().MODE_PRIVATE);
-        String userType = prefs.getString("user_type", "");
-        String userName = prefs.getString("user_name", "");
+        // Fecha por defecto
+        String today = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+        binding.inputDate.setText(today);
 
-        if ("Doctor".equalsIgnoreCase(userType)) {
-            try {
-                DoctorRepository repo = new DoctorRepository(requireContext());
-                // Obtener lista sincrónica de doctores
-                List<Doctor> all = repo.getAllList();
+        // DatePicker
+        binding.inputDate.setOnClickListener(v -> {
+            MaterialDatePicker<Long> picker = MaterialDatePicker.Builder.datePicker()
+                    .setTitleText("Seleccionar fecha de la receta")
+                    .setSelection(MaterialDatePicker.todayInUtcMilliseconds())
+                    .build();
 
-                if (all != null && !all.isEmpty()) {
-                    for (Doctor d : all) {
-                        // Coincidencia flexible: sin espacios extra, ignorando mayúsculas
-                        String doctorName = d.getName().trim().toLowerCase();
-                        String sessionName = userName.trim().toLowerCase();
-                        if (doctorName.contains(sessionName) || sessionName.contains(doctorName)) {
-                            loggedDoctor = d;
-                            break;
-                        }
-                    }
-                }
+            picker.addOnPositiveButtonClickListener(selection -> {
+                String formatted = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                        .format(new Date(selection));
+                binding.inputDate.setText(formatted);
+            });
+            picker.show(getParentFragmentManager(), "datePickerPrescription");
+        });
 
-                if (loggedDoctor != null) {
-                    // 🔹 Ocultar spinner y mostrar nombre del doctor autenticado
-                    binding.spinnerDoctor.setVisibility(View.GONE);
+        // Cargar pacientes para el spinner
+        Executors.newSingleThreadExecutor().execute(() -> {
+            AppDatabase db = AppDatabase.getInstance(requireContext());
+            List<Patient> patients = db.patientDao().getAllPatientsList();
 
-                    TextView fixedDoctor = new TextView(requireContext());
-                    fixedDoctor.setText("👨‍⚕️ Doctor: " + loggedDoctor.getName());
-                    fixedDoctor.setTextSize(16f);
-                    fixedDoctor.setPadding(0, 16, 0, 16);
-                    ((ViewGroup) binding.spinnerDoctor.getParent()).addView(fixedDoctor, 2);
-                } else {
-                    Toast.makeText(getContext(), "No se encontró el perfil del doctor en la base de datos", Toast.LENGTH_SHORT).show();
-                }
-
-            } catch (Exception e) {
-                Toast.makeText(getContext(), "Error al cargar el doctor: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                e.printStackTrace();
-            }
-        }
-
-
-        // =====================================================
-        // 🔽 Cargar pacientes y doctores en los Spinners
-        // =====================================================
-        viewModel.getAllPatients().observe(getViewLifecycleOwner(), patients -> {
-            if (patients != null && !patients.isEmpty()) {
-                ArrayAdapter<String> adapter = new ArrayAdapter<>(
+            requireActivity().runOnUiThread(() -> {
+                ArrayAdapter<String> pAdapter = new ArrayAdapter<>(
                         requireContext(),
                         android.R.layout.simple_spinner_item,
                         patients.stream()
-                                .map(p -> p.getId() + " - " + p.getName())
+                                .map(p -> p.getId() + " - " + (p.getFirstName() + " " + p.getLastName()).trim())
                                 .collect(Collectors.toList())
                 );
-                adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-                binding.spinnerPatient.setAdapter(adapter);
-            }
-        });
+                pAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                binding.spinnerPatient.setAdapter(pAdapter);
 
-        viewModel.getAllDoctors().observe(getViewLifecycleOwner(), doctors -> {
-            if (doctors != null && !doctors.isEmpty() && loggedDoctor == null) {
-                ArrayAdapter<String> adapter = new ArrayAdapter<>(
-                        requireContext(),
-                        android.R.layout.simple_spinner_item,
-                        doctors.stream()
-                                .map(d -> d.getId() + " - " + d.getName())
-                                .collect(Collectors.toList())
-                );
-                adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-                binding.spinnerDoctor.setAdapter(adapter);
-            }
-        });
-
-        // =====================================================
-        // 📝 Cargar datos si se edita receta existente
-        // =====================================================
-        int id = getArguments() != null ? getArguments().getInt(ARG_ID, -1) : -1;
-        if (id != -1) {
-            currentId = id;
-            binding.btnDelete.setVisibility(View.VISIBLE);
-
-            viewModel.getById(id).observe(getViewLifecycleOwner(), p -> {
-                if (p != null) {
-                    binding.inputDate.setText(p.getDate());
-                    binding.inputMedication.setText(p.getMedication());
-                    binding.inputDosage.setText(p.getDosage());
-                    binding.inputNotes.setText(p.getNotes());
+                if (getArguments() != null && getArguments().containsKey(ARG_ID)) {
+                    cargarRecetaExistente(getArguments().getInt(ARG_ID));
                 }
             });
+        });
 
-            binding.btnDelete.setOnClickListener(v -> {
-                viewModel.deleteById(currentId);
-                Toast.makeText(getContext(), "Receta eliminada", Toast.LENGTH_SHORT).show();
-                requireActivity().getSupportFragmentManager().popBackStack();
-            });
+        boolean readOnly = getArguments() != null && getArguments().getBoolean("readOnly", false);
+        if (readOnly) {
+            binding.btnSave.setVisibility(View.GONE);
+            binding.btnDelete.setVisibility(View.GONE);
+            binding.btnExportPdf.setVisibility(View.GONE);
+            binding.spinnerPatient.setEnabled(false);
+            binding.inputDate.setEnabled(false);
+            binding.inputMedication.setEnabled(false);
+            binding.inputDosage.setEnabled(false);
+            binding.inputNotes.setEnabled(false);
         }
 
-        binding.btnSave.setOnClickListener(v -> savePrescription());
-        binding.btnCancel.setOnClickListener(v -> requireActivity().getSupportFragmentManager().popBackStack());
+        binding.btnSave.setOnClickListener(v -> guardarReceta());
         binding.btnExportPdf.setOnClickListener(v -> exportPdf());
+        binding.btnCancel.setOnClickListener(v -> requireActivity().getSupportFragmentManager().popBackStack());
     }
 
-    // =====================================================
-    // 💾 Guardar receta (auto doctor si aplica)
-    // =====================================================
-    private void savePrescription() {
+    private void cargarRecetaExistente(int id) {
+        viewModel.getById(id).observe(getViewLifecycleOwner(), r -> {
+            if (r != null) {
+                isEditMode = true;
+                currentId = id;
+                preselectedPatientId = r.getPatientId();
+
+                binding.inputDate.setText(r.getDate());
+                binding.inputMedication.setText(r.getMedication());
+                binding.inputDosage.setText(r.getDosage());
+                binding.inputNotes.setText(r.getNotes());
+
+                trySelectPatientInSpinner();
+
+                binding.btnDelete.setVisibility(View.VISIBLE);
+                binding.btnDelete.setOnClickListener(v -> {
+                    viewModel.deleteById(r.getId());
+                    Toast.makeText(getContext(), "Receta eliminada", Toast.LENGTH_SHORT).show();
+                    requireActivity().getSupportFragmentManager().popBackStack();
+                });
+            }
+        });
+    }
+
+    private void trySelectPatientInSpinner() {
+        if (!isEditMode || preselectedPatientId == null || binding.spinnerPatient.getAdapter() == null) return;
+        ArrayAdapter<?> adapter = (ArrayAdapter<?>) binding.spinnerPatient.getAdapter();
+        for (int i = 0; i < adapter.getCount(); i++) {
+            String item = (String) adapter.getItem(i);
+            if (item.startsWith(preselectedPatientId + " -")) {
+                binding.spinnerPatient.setSelection(i);
+                binding.spinnerPatient.setEnabled(false);
+                break;
+            }
+        }
+    }
+
+    private void guardarReceta() {
         String selectedPatient = (String) binding.spinnerPatient.getSelectedItem();
-        if (selectedPatient == null || TextUtils.isEmpty(binding.inputMedication.getText().toString().trim())) {
-            Toast.makeText(getContext(), "Seleccione Paciente y complete los campos obligatorios", Toast.LENGTH_SHORT).show();
+        String date = binding.inputDate.getText().toString().trim();
+        String medication = binding.inputMedication.getText().toString().trim();
+        String dosage = binding.inputDosage.getText().toString().trim();
+        String notes = binding.inputNotes.getText().toString().trim();
+
+        if (selectedPatient == null || TextUtils.isEmpty(date) || TextUtils.isEmpty(medication)) {
+            Toast.makeText(getContext(), "Complete los campos obligatorios", Toast.LENGTH_SHORT).show();
             return;
         }
 
         int patientId = Integer.parseInt(selectedPatient.split(" - ")[0]);
-        int doctorId;
-        String doctorName;
-
-        if (loggedDoctor != null) {
-            doctorId = loggedDoctor.getId();
-            doctorName = loggedDoctor.getName();
-        } else {
-            String selectedDoctor = (String) binding.spinnerDoctor.getSelectedItem();
-            if (selectedDoctor == null) {
-                Toast.makeText(getContext(), "Seleccione un doctor", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            doctorId = Integer.parseInt(selectedDoctor.split(" - ")[0]);
-            doctorName = selectedDoctor.split(" - ")[1];
-        }
-
         Prescription p = new Prescription();
         if (currentId != null) p.setId(currentId);
+
         p.setPatientId(patientId);
-        p.setDoctorId(doctorId);
-        p.setDate(binding.inputDate.getText().toString().trim());
-        p.setMedication(binding.inputMedication.getText().toString().trim());
-        p.setDosage(binding.inputDosage.getText().toString().trim());
-        p.setNotes(binding.inputNotes.getText().toString().trim());
+        p.setDate(date);
+        p.setMedication(medication);
+        p.setDosage(dosage);
+        p.setNotes(notes);
 
         if (currentId == null) {
             viewModel.insert(p);
-            Toast.makeText(getContext(), "Receta creada por el Dr. " + doctorName, Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), "Receta creada correctamente", Toast.LENGTH_SHORT).show();
         } else {
             viewModel.update(p);
             Toast.makeText(getContext(), "Receta actualizada", Toast.LENGTH_SHORT).show();
@@ -208,9 +203,6 @@ public class PrescriptionFormFragment extends Fragment {
         requireActivity().getSupportFragmentManager().popBackStack();
     }
 
-    // =====================================================
-    // 🧾 Generación del PDF de la receta
-    // =====================================================
     private void exportPdf() {
         String selectedPatient = (String) binding.spinnerPatient.getSelectedItem();
         if (selectedPatient == null) {
@@ -225,18 +217,6 @@ public class PrescriptionFormFragment extends Fragment {
 
         int patientId = Integer.parseInt(selectedPatient.split(" - ")[0]);
         String patientName = selectedPatient.split(" - ")[1];
-
-        int doctorId;
-        String doctorName;
-
-        if (loggedDoctor != null) {
-            doctorId = loggedDoctor.getId();
-            doctorName = loggedDoctor.getName();
-        } else {
-            String selectedDoctor = (String) binding.spinnerDoctor.getSelectedItem();
-            doctorId = Integer.parseInt(selectedDoctor.split(" - ")[0]);
-            doctorName = selectedDoctor.split(" - ")[1];
-        }
 
         try {
             PdfDocument doc = new PdfDocument();
@@ -258,64 +238,39 @@ public class PrescriptionFormFragment extends Fragment {
             canvas.drawLine(x, y, info.getPageWidth() - x, y, text);
             y += dy;
 
-            canvas.drawText("Fecha: " + (TextUtils.isEmpty(date) ? "—" : date), x, y, text);
+            canvas.drawText("Fecha: " + date, x, y, text);
             y += dy;
             canvas.drawText("Paciente: " + patientId + " - " + patientName, x, y, text);
             y += dy;
-            canvas.drawText("Doctor: " + doctorId + " - " + doctorName, x, y, text);
+            canvas.drawText("Medicamento: " + (TextUtils.isEmpty(medication) ? "—" : medication), x, y, text);
             y += dy;
-
-            y += 10;
-            canvas.drawText("Medicamento:", x, y, title);
+            canvas.drawText("Dosis/Frecuencia: " + (TextUtils.isEmpty(dosage) ? "—" : dosage), x, y, text);
             y += dy;
-            canvas.drawText(medication, x, y, text);
-            y += dy;
-
-            canvas.drawText("Dosis:", x, y, title);
-            y += dy;
-            canvas.drawText(TextUtils.isEmpty(dosage) ? "—" : dosage, x, y, text);
-            y += dy;
-
             canvas.drawText("Notas:", x, y, title);
             y += dy;
-            String[] lines = wrap(notes, 60);
-            for (String line : lines) {
-                canvas.drawText(line, x, y, text);
-                y += dy - 6;
-            }
-
-            y += 20;
-            canvas.drawLine(x, y, x + 200, y, text);
-            y += dy - 10;
-            canvas.drawText("Firma del Médico", x, y, text);
+            canvas.drawText(TextUtils.isEmpty(notes) ? "—" : notes, x, y, text);
 
             doc.finishPage(page);
 
             File outDir = requireContext().getExternalFilesDir(null);
-            if (outDir == null) outDir = requireContext().getFilesDir();
             File pdfFile = new File(outDir, "receta_" + System.currentTimeMillis() + ".pdf");
-
             try (FileOutputStream fos = new FileOutputStream(pdfFile)) {
                 doc.writeTo(fos);
             }
             doc.close();
 
-            Toast.makeText(getContext(), "PDF generado correctamente", Toast.LENGTH_SHORT).show();
             openPdfFile(pdfFile);
 
         } catch (IOException e) {
             e.printStackTrace();
-            Toast.makeText(getContext(), "Error al generar PDF: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), "Error al generar PDF", Toast.LENGTH_SHORT).show();
         }
     }
 
     private void openPdfFile(File file) {
         try {
-            Uri uri = FileProvider.getUriForFile(
-                    requireContext(),
-                    requireContext().getPackageName() + ".provider",
-                    file
-            );
+            Uri uri = FileProvider.getUriForFile(requireContext(),
+                    requireContext().getPackageName() + ".provider", file);
             Intent intent = new Intent(Intent.ACTION_VIEW);
             intent.setDataAndType(uri, "application/pdf");
             intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
@@ -323,23 +278,5 @@ public class PrescriptionFormFragment extends Fragment {
         } catch (Exception e) {
             Toast.makeText(getContext(), "No se encontró visor PDF", Toast.LENGTH_SHORT).show();
         }
-    }
-
-    private String[] wrap(String text, int max) {
-        if (TextUtils.isEmpty(text)) return new String[]{"—"};
-        text = text.replace("\n", " ");
-        String[] words = text.split("\\s+");
-        List<String> lines = new ArrayList<>();
-        StringBuilder sb = new StringBuilder();
-        for (String w : words) {
-            if (sb.length() + w.length() + 1 > max) {
-                lines.add(sb.toString());
-                sb.setLength(0);
-            }
-            if (sb.length() > 0) sb.append(' ');
-            sb.append(w);
-        }
-        if (sb.length() > 0) lines.add(sb.toString());
-        return lines.toArray(new String[0]);
     }
 }

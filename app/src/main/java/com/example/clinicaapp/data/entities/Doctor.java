@@ -4,8 +4,6 @@ import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 import androidx.room.Ignore;
 
-import java.util.Random;
-
 @Entity(tableName = "doctors")
 public class Doctor {
 
@@ -17,20 +15,17 @@ public class Doctor {
     private String email;
     private String phone;
 
-    // Constructor vacío
     public Doctor() {}
 
-    // Constructor que genera un ID aleatorio si no lo tiene
+
     @Ignore
     public Doctor(String name, String specialty, String email, String phone) {
-        this.id = new Random().nextInt(100000); // ID aleatorio
         this.name = name;
         this.specialty = specialty;
         this.email = email;
         this.phone = phone;
     }
 
-    // Getters y Setters
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
 
