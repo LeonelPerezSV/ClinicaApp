@@ -86,6 +86,16 @@ public class AppointmentFormFragment extends Fragment {
         String userType = prefs.getString("user_type", "");
         String userName = prefs.getString("user_name", "");
 
+        // 🔹 Control de visibilidad de botones según tipo de usuario
+        boolean isDoctor = "Doctor".equalsIgnoreCase(userType);
+        if (!isDoctor) {
+            binding.btnDelete.setVisibility(View.GONE); // Oculta el botón eliminar
+            binding.btnSave.setVisibility(View.GONE);   // Opcional: también ocultar guardar
+            binding.btnExportPdf.setVisibility(View.VISIBLE); // Mantener visible PDF
+            binding.btnCancel.setVisibility(View.VISIBLE);    // Mantener visible cancelar
+        }
+
+
         if ("Doctor".equalsIgnoreCase(userType)) {
             try {
                 DoctorRepository repo = new DoctorRepository(requireContext());
@@ -211,7 +221,12 @@ public class AppointmentFormFragment extends Fragment {
 
                 trySelectPatientInSpinner();
                 binding.spinnerDoctor.setEnabled(false);
-                binding.btnDelete.setVisibility(View.VISIBLE);
+
+                // 🔹 Mostrar eliminar solo si es doctors
+                SharedPreferences prefs = requireContext().getSharedPreferences("ClinicaAppPrefs", Context.MODE_PRIVATE);
+                boolean isDoctor = "Doctor".equalsIgnoreCase(prefs.getString("user_type", ""));
+                binding.btnDelete.setVisibility(isDoctor ? View.VISIBLE : View.GONE);
+
 
                 binding.btnDelete.setOnClickListener(v -> {
                     viewModel.deleteById(a.getId());
