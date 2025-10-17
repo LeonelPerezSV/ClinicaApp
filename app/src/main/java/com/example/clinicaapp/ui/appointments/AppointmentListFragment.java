@@ -3,6 +3,7 @@ package com.example.clinicaapp.ui.appointments;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.*;
 import android.widget.Toast;
 
@@ -16,10 +17,10 @@ import com.example.clinicaapp.data.db.AppDatabase;
 import com.example.clinicaapp.data.entities.Appointment;
 import com.example.clinicaapp.databinding.FragmentAppointmentListBinding;
 import com.example.clinicaapp.viewmodel.AppointmentViewModel;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.List;
 import java.util.concurrent.Executors;
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 public class AppointmentListFragment extends Fragment implements AppointmentAdapter.OnAppointmentClick {
 
@@ -50,73 +51,112 @@ public class AppointmentListFragment extends Fragment implements AppointmentAdap
         binding.recycler.setAdapter(adapter);
 
         if (isDoctor) {
-            // 👨‍⚕️ El doctor ve todas las citas
+            // 👨‍⚕️ Doctor → todas las citas
             viewModel.getAllAppointments().observe(getViewLifecycleOwner(), this::updateList);
         } else {
-            // 👤 El paciente solo ve sus citas
+            // 👤 Paciente → buscar su patientId y cargar solo sus citas
             Executors.newSingleThreadExecutor().execute(() -> {
                 try {
-                    int patientId = AppDatabase.getInstance(requireContext())
-                            .patientDao()
-                            .getPatientIdByUserId((int) userId);
+                    AppDatabase db = AppDatabase.getInstance(requireContext());
+                    int patientId = db.patientDao().getPatientIdByUserId((int) userId);
+
+                    Log.d("CLINICAPP", "userId=" + userId + ", patientId=" + patientId);
 
                     requireActivity().runOnUiThread(() -> {
                         if (patientId > 0) {
+                            // 🔹 Ahora sí, observar citas de ese paciente
                             viewModel.getAppointmentsByPatient(patientId)
-                                    .observe(getViewLifecycleOwner(), this::updateList);
+                                    .observe(getViewLifecycleOwner(), list -> {
+                                        if (list != null && !list.isEmpty()) {
+                                            adapter.submit(list);
+                                            binding.empty.setVisibility(View.GONE);
+                                        } else {
+                                            binding.empty.setVisibility(View.VISIBLE);
+                                            binding.empty.setText("No tienes citas registradas.");
+                                        }
+                                    });
                         } else {
                             binding.empty.setVisibility(View.VISIBLE);
-                            Toast.makeText(requireContext(), "No se encontró el paciente vinculado.", Toast.LENGTH_SHORT).show();
+                            binding.empty.setText("No se encontró el paciente vinculado a este usuario.");
                         }
                     });
+
                 } catch (Exception e) {
                     e.printStackTrace();
                     requireActivity().runOnUiThread(() ->
-                            Toast.makeText(requireContext(), "Error al cargar citas: " + e.getMessage(), Toast.LENGTH_LONG).show()
+                            Toast.makeText(requireContext(),
+                                    "Error al cargar citas: " + e.getMessage(),
+                                    Toast.LENGTH_LONG).show()
                     );
                 }
             });
         }
 
-        // FAB solo visible para doctor
+        // 🔹 FAB visible solo para doctor
         binding.fabAdd.setVisibility(isDoctor ? View.VISIBLE : View.GONE);
         if (isDoctor) {
             binding.fabAdd.setOnClickListener(v -> openForm(-1));
         }
 
-        // Swipe para eliminar citas solo si es doctor
+// 🔹 Configurar Swipe (solo doctor puede eliminar)
         if (isDoctor) {
             new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
-                @Override public boolean onMove(@NonNull RecyclerView rv, @NonNull RecyclerView.ViewHolder v1, @NonNull RecyclerView.ViewHolder v2) { return false; }
+                @Override
+                public boolean onMove(@NonNull RecyclerView recyclerView,
+                                      @NonNull RecyclerView.ViewHolder viewHolder,
+                                      @NonNull RecyclerView.ViewHolder target) {
+                    return false;
+                }
 
                 @Override
-                public void onSwiped(@NonNull RecyclerView.ViewHolder vh, int dir) {
-                    Appointment item = adapter.getAt(vh.getAdapterPosition());
+                public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+                    Appointment item = adapter.getAt(viewHolder.getAdapterPosition());
+
                     new MaterialAlertDialogBuilder(requireContext())
-                            .setTitle("Confirmar eliminación")
+                            .setTitle("Eliminar cita")
                             .setMessage("¿Desea eliminar la cita del paciente #" + item.getPatientId() + "?")
-                            .setIcon(android.R.drawable.ic_dialog_alert)
-                            .setCancelable(false)
                             .setPositiveButton("Eliminar", (dialog, which) -> {
                                 viewModel.deleteById(item.getId());
                                 Toast.makeText(getContext(), "Cita eliminada correctamente", Toast.LENGTH_SHORT).show();
                             })
                             .setNegativeButton("Cancelar", (dialog, which) -> {
-                                adapter.notifyItemChanged(vh.getAdapterPosition());
+                                adapter.notifyItemChanged(viewHolder.getAdapterPosition());
                                 dialog.dismiss();
                             })
                             .show();
                 }
             }).attachToRecyclerView(binding.recycler);
+        } else {
+            // 🔹 Si es paciente, bloquear Swipe
+            new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(0, 0) {
+                @Override
+                public boolean onMove(@NonNull RecyclerView recyclerView,
+                                      @NonNull RecyclerView.ViewHolder viewHolder,
+                                      @NonNull RecyclerView.ViewHolder target) {
+                    return false;
+                }
+
+                @Override
+                public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+                    // No hace nada
+                }
+            }).attachToRecyclerView(binding.recycler);
         }
+
     }
 
     private void updateList(List<Appointment> list) {
         adapter.submit(list);
-        binding.empty.setVisibility(list == null || list.isEmpty() ? View.VISIBLE : View.GONE);
+        if (list == null || list.isEmpty()) {
+            binding.empty.setVisibility(View.VISIBLE);
+            binding.empty.setText("No hay citas registradas.");
+        } else {
+            binding.empty.setVisibility(View.GONE);
+        }
     }
 
     private void openForm(int id) {
+        // 🔹 Si es paciente → abrir en modo solo lectura
         Fragment f = AppointmentFormFragment.newInstance(id, !isDoctor);
         requireActivity().getSupportFragmentManager()
                 .beginTransaction()

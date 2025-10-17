@@ -29,9 +29,6 @@ public class UserRepository {
         executor.execute(() -> dao.insert(user));
     }
 
-    public void insertAll(List<User> users) {
-        executor.execute(() -> dao.insertAll(users));
-    }
 
     public void update(User user) {
         executor.execute(() -> dao.update(user));

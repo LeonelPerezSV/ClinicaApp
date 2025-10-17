@@ -15,10 +15,8 @@ import java.util.List;
 public interface UserDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    void insert(User user);
+    long insert(User user);  // 🔹 devuelve el ID generado
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    void insertAll(List<User> users);
 
     @Update
     void update(User user);
@@ -47,6 +45,8 @@ public interface UserDao {
 
     @Query("SELECT * FROM users WHERE id = :id LIMIT 1")
     LiveData<User> getById(int id);
+
+
 }
 
 

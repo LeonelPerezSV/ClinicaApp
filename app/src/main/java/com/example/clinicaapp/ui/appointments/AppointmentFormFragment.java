@@ -190,6 +190,10 @@ public class AppointmentFormFragment extends Fragment {
             binding.inputTime.setEnabled(false);
             binding.inputStatus.setEnabled(false);
             binding.inputReason.setEnabled(false);
+
+            // 👇 Mantener visible solo el botón de PDF y cancelar
+            binding.btnExportPdf.setVisibility(View.VISIBLE);
+            binding.btnCancel.setVisibility(View.VISIBLE);
         }
     }
 

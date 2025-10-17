@@ -78,7 +78,9 @@ public class RegisterActivity extends AppCompatActivity {
 
         // Crear nuevo usuario
         User user = new User(fullName, username, password, selectedType);
-        db.userDao().insert(user);
+
+        long userId = db.userDao().insert(user); // 🔹 obtiene el ID real
+        user.setId((int) userId);                // 🔹 actualiza el objeto Java con ese ID
 
         // ✅ Si es doctor, crear perfil en la tabla doctors
         if ("Doctor".equalsIgnoreCase(selectedType)) {
