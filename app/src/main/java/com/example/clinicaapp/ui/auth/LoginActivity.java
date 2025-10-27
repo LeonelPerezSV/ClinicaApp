@@ -4,19 +4,16 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.Spinner;
-import android.widget.TextView;
-import android.widget.Toast;
+import android.widget.*;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.clinicaapp.MainActivity;
 import com.example.clinicaapp.R;
 import com.example.clinicaapp.data.db.AppDatabase;
 import com.example.clinicaapp.data.entities.User;
+import com.example.clinicaapp.data.repo.FirebaseSyncRepository;
+
+import java.util.regex.Pattern;
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -24,9 +21,21 @@ public class LoginActivity extends AppCompatActivity {
     private Button btnLogin;
     private Spinner spinnerUserType;
     private TextView txtRegisterLink;
-
+    private CheckBox cbRemember;
     private String selectedUserType = "Paciente";
     private AppDatabase db;
+
+    // Validaciones
+    private static final Pattern EMAIL_PATTERN =
+            Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$");
+
+    private static boolean isValidEmail(String s) {
+        return s != null && EMAIL_PATTERN.matcher(s).matches();
+    }
+
+    private static boolean isValidPassword(String s) {
+        return s != null && s.length() >= 8 && s.matches("^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]+$");
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,10 +48,6 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
-
-
-
-
         setContentView(R.layout.activity_login);
 
         edtUser = findViewById(R.id.edtUser);
@@ -50,31 +55,31 @@ public class LoginActivity extends AppCompatActivity {
         btnLogin = findViewById(R.id.btnLogin);
         spinnerUserType = findViewById(R.id.spinnerUserType);
         txtRegisterLink = findViewById(R.id.txtRegisterLink);
+        cbRemember = findViewById(R.id.cbRemember);
 
         db = AppDatabase.getInstance(this);
 
-        // Configurar el spinner de tipo de usuario
+        // Configuración del Spinner
         String[] tipos = {"Paciente", "Doctor"};
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, tipos);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerUserType.setAdapter(adapter);
-
         spinnerUserType.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+            @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 selectedUserType = parent.getItemAtPosition(position).toString();
             }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-                selectedUserType = "Paciente";
-            }
+            @Override public void onNothingSelected(AdapterView<?> parent) { selectedUserType = "Paciente"; }
         });
 
-        // Acción de inicio de sesión
-        btnLogin.setOnClickListener(v -> handleLogin());
+        // Recordarme: restaurar datos si existen
+        SharedPreferences prefs = getSharedPreferences("ClinicaAppPrefs", MODE_PRIVATE);
+        if (prefs.getBoolean("remember_me", false)) {
+            cbRemember.setChecked(true);
+            edtUser.setText(prefs.getString("remember_user", ""));
+            edtPass.setText(prefs.getString("remember_pass", ""));
+        }
 
-        // Redirigir al registro
+        btnLogin.setOnClickListener(v -> handleLogin());
         txtRegisterLink.setOnClickListener(v ->
                 startActivity(new Intent(LoginActivity.this, RegisterActivity.class))
         );
@@ -84,54 +89,57 @@ public class LoginActivity extends AppCompatActivity {
         String username = edtUser.getText().toString().trim();
         String password = edtPass.getText().toString().trim();
 
-        if (username.isEmpty() || password.isEmpty()) {
-            Toast.makeText(this, "Complete todos los campos", Toast.LENGTH_SHORT).show();
+        // Validaciones
+        if (!isValidEmail(username)) {
+            Toast.makeText(this, "Correo inválido. Ejemplo: usuario@dominio.com", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (!isValidPassword(password)) {
+            Toast.makeText(this, "La contraseña debe tener al menos 8 caracteres alfanuméricos.", Toast.LENGTH_LONG).show();
             return;
         }
 
         try {
-            // ✅ Usar UN único método de DAO
             User user = db.userDao().login(username, password);
-
             if (user == null) {
                 Toast.makeText(this, "Usuario o contraseña incorrectos", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            // ✅ Evitar NullPointer si vienen nulos
-            String safeName = (user.getFullName() == null || user.getFullName().isEmpty())
-                    ? user.getUsername()
-                    : user.getFullName();
-            String safeType = (user.getUserType() == null || user.getUserType().isEmpty())
-                    ? "Paciente"
-                    : user.getUserType();
-
-            // Guardar sesión activa
+            // Guardar sesión
             SharedPreferences session = getSharedPreferences("session", MODE_PRIVATE);
             session.edit().putBoolean("logged_in", true).apply();
 
-            // Guardar tipo y nombre para Home/Drawer
             SharedPreferences prefs = getSharedPreferences("ClinicaAppPrefs", MODE_PRIVATE);
             prefs.edit()
-                    .putString("user_type", safeType)
-                    .putString("user_name", safeName)
-
+                    .putString("user_type", user.getUserType() == null ? "Paciente" : user.getUserType())
+                    .putString("user_name", user.getFullName() == null ? user.getUsername() : user.getFullName())
                     .putLong("user_id", user.getId())
-
                     .apply();
 
-            Toast.makeText(this, "Bienvenido " + safeName, Toast.LENGTH_SHORT).show();
+            // Recordarme
+            SharedPreferences.Editor e = prefs.edit();
+            if (cbRemember.isChecked()) {
+                e.putBoolean("remember_me", true);
+                e.putString("remember_user", username);
+                e.putString("remember_pass", password);
+            } else {
+                e.remove("remember_me");
+                e.remove("remember_user");
+                e.remove("remember_pass");
+            }
+            e.apply();
 
-            // Ir a MainActivity
-            Intent intent = new Intent(this, MainActivity.class);
-            startActivity(intent);
+
+
+            startActivity(new Intent(this, MainActivity.class));
             finish();
 
         } catch (Exception e) {
-            // ✅ Si algo raro pasa (schema antiguo, etc.), no se cae la app:
             Toast.makeText(this, "Error al iniciar sesión: " + e.getMessage(), Toast.LENGTH_LONG).show();
             e.printStackTrace();
         }
     }
+
 
 }

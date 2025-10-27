@@ -10,77 +10,70 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class AppointmentRepository {
-
     private final AppointmentDao dao;
     private final ExecutorService executor;
+    private final FirebaseSyncRepository sync;
 
     public AppointmentRepository(Context context) {
         dao = AppDatabase.getInstance(context).appointmentDao();
         executor = Executors.newSingleThreadExecutor();
+        sync = new FirebaseSyncRepository(context);
     }
 
+    // 🔹 Obtener todas las citas
     public LiveData<List<Appointment>> getAll() {
         return dao.getAll();
     }
 
-    public void insert(Appointment appointment) {
-        executor.execute(() -> dao.insert(appointment));
-    }
-
-    public void insertAll(List<Appointment> appointments) {
-        executor.execute(() -> dao.insertAll(appointments));
-    }
-
-    public void update(Appointment appointment) {
-        executor.execute(() -> dao.update(appointment));
-    }
-
-    public void delete(Appointment appointment) {
-        executor.execute(() -> dao.delete(appointment));
-    }
-
-    public void deleteAll() {
-        executor.execute(dao::deleteAll);
-    }
-
-    public Appointment findById(int id) {
-        return dao.findById(id);
-    }
-
+    // 🔹 Obtener citas por paciente
     public LiveData<List<Appointment>> getByPatient(int patientId) {
         return dao.getByPatient(patientId);
     }
 
-
+    // 🔹 Obtener cita por ID
     public LiveData<Appointment> getById(int id) {
         return dao.getById(id);
     }
 
+    // 🔹 Insertar cita
+    public void insert(Appointment a) {
+        executor.execute(() -> {
+            dao.insert(a);
+            sync.upsertAppointment(a);
+        });
+    }
 
+    // 🔹 Actualizar cita
+    public void update(Appointment a) {
+        executor.execute(() -> {
+            dao.update(a);
+            sync.upsertAppointment(a);
+        });
+    }
+
+    // 🔹 Eliminar cita individual
+    public void delete(Appointment a) {
+        executor.execute(() -> {
+            dao.delete(a);
+            sync.deleteAppointment(a.getId());
+        });
+    }
+
+    // 🔹 Eliminar cita por ID
     public void deleteById(int id) {
-        executor.execute(() -> dao.deleteById(id));
+        executor.execute(() -> {
+            dao.deleteById(id);
+            sync.deleteAppointment(id);
+        });
     }
 
-
-    public LiveData<List<Appointment>> getByDoctorLive(int doctorId) {
-        // Ajustamos a la versión existente del DAO
-        return new androidx.lifecycle.MutableLiveData<>(
-                dao.getAppointmentsForDoctor(doctorId)
-        );
+    // 🔹 Eliminar todas las citas
+    public void deleteAll() {
+        executor.execute(dao::deleteAll);
     }
+
+    // 🔹 Sincronizar todas las citas (pull desde Firestore)
     public void syncAll() {
-        // Placeholder: lógica de sincronización si tuvieras API.
+        executor.execute(sync::pullAppointmentsDown);
     }
-
-    public List<Appointment> getAllSyncByPatient(int patientId) {
-        return dao.getAllSyncByPatient(patientId);
-    }
-
-    public void deleteByPatientIdSync(int patientId) {
-        dao.deleteByPatientId(patientId);
-    }
-
-    public void deleteSync(Appointment a) { dao.delete(a); }
-
-
 }

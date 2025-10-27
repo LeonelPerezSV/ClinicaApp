@@ -52,30 +52,44 @@ public class PrescriptionListFragment extends Fragment implements PrescriptionAd
             // 👨‍⚕️ Doctor → todas las recetas
             viewModel.getAllPrescriptions().observe(getViewLifecycleOwner(), this::updateList);
         } else {
-            // 👤 Paciente → buscar su ID interno y luego filtrar recetas
+            // 👤 Paciente → buscar su patientId real y mostrar solo sus recetas
             Executors.newSingleThreadExecutor().execute(() -> {
                 try {
-                    int patientId = AppDatabase.getInstance(requireContext())
-                            .patientDao()
-                            .getPatientIdByUserId((int) userId);
+                    AppDatabase db = AppDatabase.getInstance(requireContext());
+                    int patientId = db.patientDao().getPatientIdByUserId((int) userId);
+
+                    android.util.Log.d("CLINICAPP", "userId=" + userId + ", patientId=" + patientId);
 
                     requireActivity().runOnUiThread(() -> {
                         if (patientId > 0) {
                             viewModel.getPrescriptionsByPatient(patientId)
-                                    .observe(getViewLifecycleOwner(), this::updateList);
+                                    .observe(getViewLifecycleOwner(), list -> {
+                                        if (list != null && !list.isEmpty()) {
+                                            adapter.submit(list);
+                                            binding.empty.setVisibility(View.GONE);
+                                        } else {
+                                            binding.empty.setVisibility(View.VISIBLE);
+                                            binding.empty.setText("No tienes recetas registradas.");
+                                        }
+                                    });
                         } else {
                             binding.empty.setVisibility(View.VISIBLE);
-                            Toast.makeText(requireContext(), "No se encontró el paciente vinculado.", Toast.LENGTH_SHORT).show();
+                            binding.empty.setText("No se encontró un paciente vinculado a este usuario.");
                         }
                     });
+
                 } catch (Exception e) {
                     e.printStackTrace();
                     requireActivity().runOnUiThread(() ->
-                            Toast.makeText(requireContext(), "Error al cargar recetas: " + e.getMessage(), Toast.LENGTH_LONG).show()
+                            Toast.makeText(requireContext(),
+                                    "Error al cargar recetas: " + e.getMessage(),
+                                    Toast.LENGTH_LONG).show()
                     );
                 }
             });
         }
+
+
 
         // FAB solo visible para doctor
         binding.fabAdd.setVisibility(isDoctor ? View.VISIBLE : View.GONE);
@@ -116,6 +130,7 @@ public class PrescriptionListFragment extends Fragment implements PrescriptionAd
     }
 
     private void openForm(int id) {
+        // 🧠 Si el usuario es paciente, abrimos el formulario en modo solo lectura
         Fragment f = PrescriptionFormFragment.newInstance(id, !isDoctor);
         requireActivity().getSupportFragmentManager()
                 .beginTransaction()

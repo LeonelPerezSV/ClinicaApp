@@ -10,54 +10,41 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class PatientRepository {
-
     private final PatientDao dao;
     private final ExecutorService executor;
+    private final FirebaseSyncRepository sync;
 
     public PatientRepository(Context context) {
         dao = AppDatabase.getInstance(context).patientDao();
         executor = Executors.newSingleThreadExecutor();
+        sync = new FirebaseSyncRepository(context);
     }
 
-    public LiveData<List<Patient>> getAll() {
-        return dao.getAll();
+    public LiveData<List<Patient>> getAll() { return dao.getAll(); }
+
+    public LiveData<Patient> getById(int id) { return dao.getById(id); }
+
+    public void insert(Patient p) {
+        executor.execute(() -> { dao.insert(p); sync.upsertPatient(p); });
     }
 
-    public void insert(Patient patient) {
-        executor.execute(() -> dao.insert(patient));
+    public void update(Patient p) {
+        executor.execute(() -> { dao.update(p); sync.upsertPatient(p); });
     }
 
-    public void insertAll(List<Patient> patients) {
-        executor.execute(() -> dao.insertAll(patients));
+    public void delete(Patient p) {
+        executor.execute(() -> { dao.delete(p); sync.deletePatient(p.getId()); });
     }
 
-    public void update(Patient patient) {
-        executor.execute(() -> dao.update(patient));
-    }
-
-    public void delete(Patient patient) {
-        executor.execute(() -> dao.delete(patient));
+    public void deleteById(int id) {
+        executor.execute(() -> { dao.deleteById(id); sync.deletePatient(id); });
     }
 
     public void deleteAll() {
         executor.execute(dao::deleteAll);
     }
 
-    public Patient findById(int id) {
-        return dao.findById(id);
+    public void syncAll() {
+        executor.execute(sync::pullPatientsDown);
     }
-
-    public void deleteById(int id) {
-        executor.execute(() -> dao.deleteById(id));
-    }
-
-    public LiveData<Patient> getById(int id) {
-        return dao.getById(id);
-    }
-
-    // 🔹 Eliminación sincrónica (evita race conditions)
-    public void deleteSync(Patient patient) {
-        dao.delete(patient);
-    }
-
 }

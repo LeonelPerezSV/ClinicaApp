@@ -8,6 +8,7 @@ import android.view.View;           // <— IMPORTA View
 import android.widget.ImageView;
 import android.widget.TextView;    // <— IMPORTA TextView
 
+import com.example.clinicaapp.data.repo.FirebaseSyncRepository;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.navigation.NavigationView;
 
@@ -117,6 +118,9 @@ public class MainActivity extends AppCompatActivity {
             }
             return handled;
         });
+
+        new FirebaseSyncRepository(this).syncFromFirestore();
+
     }
 
     @Override
