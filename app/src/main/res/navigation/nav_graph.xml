@@ -74,6 +74,13 @@
     </fragment>
 
     <fragment
+        android:id="@+id/nav_map"
+        android:name="com.example.clinicaapp.ui.map.ClinicMapFragment"
+        android:label="Mapa de la Clínica"
+        tools:layout="@layout/fragment_clinic_map" />
+
+
+    <fragment
         android:id="@+id/medicalRecordFormFragment"
         android:name="com.example.clinicaapp.ui.records.MedicalRecordFormFragment"
         android:label="Formulario Expediente"
@@ -85,4 +92,6 @@
         android:name="com.example.clinicaapp.ui.settings.SettingsFragment"
         android:label="Configuración"
         tools:layout="@layout/fragment_settings" />
+
+
 </navigation>

@@ -9,6 +9,12 @@
             android:id="@+id/nav_home"
             android:icon="@android:drawable/ic_menu_view"
             android:title="Inicio" />
+
+        <item
+            android:id="@+id/nav_map"
+            android:icon="@drawable/ic_map"
+            android:title="Mapa de la Clínica" />
+
     </group>
 
     <!-- Paciente -->
