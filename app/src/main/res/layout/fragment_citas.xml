@@ -8,7 +8,7 @@
 
     <TextView
         android:id="@+id/txtTitle"
-        android:text="Gestión de Citas Médicas"
+        android:text="Gestión de Citas Médicas 🗓️"
         android:textSize="20sp"
         android:textStyle="bold"
         android:layout_width="wrap_content"
