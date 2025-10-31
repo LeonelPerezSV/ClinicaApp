@@ -15,7 +15,7 @@
             android:id="@+id/imgLogo"
             android:layout_width="120dp"
             android:layout_height="120dp"
-            android:src="@mipmap/ic_launcher_round"
+            android:src="@drawable/clinicapp_logo"
             android:contentDescription="Logo"
             android:layout_marginBottom="16dp" />
 
@@ -23,10 +23,10 @@
             android:id="@+id/tvWelcome"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Bienvenido a ClínicaApp"
+            android:text="Bienvenido a ClínicApp"
             android:textSize="20sp"
             android:textStyle="bold"
-            android:textColor="@android:color/black"
+            android:textColor="@color/white"
             android:layout_marginBottom="8dp" />
 
         <TextView
@@ -35,10 +35,10 @@
             android:layout_height="wrap_content"
             android:text="Tipo de usuario:"
             android:textSize="16sp"
-            android:textColor="@color/brandPrimary"
+            android:textColor="@color/white"
             android:layout_marginBottom="20dp" />
 
-        <!-- 🧍 Paciente -->
+        <!--  Paciente -->
         <LinearLayout
             android:id="@+id/layoutPaciente"
             android:orientation="vertical"
@@ -63,7 +63,7 @@
                 android:layout_marginBottom="24dp" />
         </LinearLayout>
 
-        <!-- 👨‍⚕️ Doctor -->
+        <!-- ️ Doctor -->
         <LinearLayout
             android:id="@+id/layoutDoctor"
             android:orientation="vertical"

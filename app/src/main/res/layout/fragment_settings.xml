@@ -6,10 +6,20 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+    <ImageView
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="10dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/clinicapp_logo"
+        android:contentDescription="Logo de la aplicación"/>
+
     <TextView
         android:text="Configuración de Usuario"
         android:textStyle="bold"
         android:textSize="18sp"
+        android:textColor="@color/white"
         android:layout_marginBottom="16dp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
@@ -17,12 +27,14 @@
     <Switch
         android:id="@+id/switchTheme"
         android:text="Modo oscuro"
+        android:textColor="@color/white"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
 
     <Button
         android:id="@+id/btnClearSession"
         android:text="Cerrar Sesión"
+        android:backgroundTint="@color/errorColor"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="20dp" />

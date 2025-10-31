@@ -1,19 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Paleta base -->
-    <color name="brandPrimary">#2B76E5</color> <!-- Azul Figma -->
+    <color name="brandPrimary">#43A047</color> <!-- Azul Figma -->
     <color name="brandPrimaryDark">#1E56B0</color>
     <color name="brandAccent">#47B881</color>
 
     <!-- Apoyos -->
-    <color name="backgroundLight">#F5F7FB</color>
+    <color name="backgroundLight">@color/azulmedico</color>
     <color name="surfaceLight">#FFFFFF</color>
-    <color name="textPrimary">#1F2937</color>
-    <color name="textSecondary">#6B7280</color>
+    <color name="textPrimary">@color/white</color>
+    <color name="textSecondary">@color/white</color>
 
     <!-- Defaults -->
-    <color name="black">#FF000000</color>
+    <color name="blanco">@color/white</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="azulmedico">#2196F3</color>
 
     <color name="errorColor">#D32F2F</color>
 

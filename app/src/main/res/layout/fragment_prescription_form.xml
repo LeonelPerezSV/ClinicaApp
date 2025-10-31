@@ -16,13 +16,23 @@
         android:layout_height="wrap_content"
         android:paddingBottom="32dp">
 
-        <!-- 🧑 Paciente -->
+        <ImageView
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="10dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/clinicapp_logo"
+            android:contentDescription="Logo de la aplicación"/>
+
+        <!-- Paciente -->
         <TextView
             android:text="Seleccionar Paciente"
             android:textStyle="bold"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp" />
+            android:layout_marginTop="8dp"
+            android:textColor="@color/white"/>
 
         <Spinner
             android:id="@+id/spinnerPatient"
@@ -31,7 +41,7 @@
             android:background="@drawable/spinner_background"
             android:padding="8dp" />
 
-        <!-- 📅 Fecha -->
+        <!-- Fecha -->
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -48,7 +58,7 @@
                 android:layout_height="wrap_content" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- 💊 Medicamento -->
+        <!--  Medicamento -->
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -63,7 +73,7 @@
                 android:layout_height="wrap_content" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- 💧 Dosis -->
+        <!--  Dosis -->
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -78,7 +88,7 @@
                 android:layout_height="wrap_content" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- 🗒️ Notas -->
+        <!--  Notas -->
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -94,7 +104,7 @@
                 android:layout_height="wrap_content" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- 🔘 Botones -->
+        <!-- Botones -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -137,7 +147,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:backgroundTint="@color/textSecondary"
+                android:backgroundTint="@color/brandAccent"
                 android:textColor="@color/white"
                 android:textAllCaps="false" />
         </LinearLayout>

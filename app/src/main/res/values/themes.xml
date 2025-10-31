@@ -1,6 +1,6 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Tema principal de la app -->
+    <!-- Tema principal de la app con misma fuente -->
     <style name="Theme.ClinicaApp" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="colorPrimary">@color/brandPrimary</item>
         <item name="colorPrimaryVariant">@color/brandPrimaryDark</item>
@@ -12,6 +12,8 @@
         <item name="android:textColorPrimary">@color/textPrimary</item>
         <item name="android:textColorSecondary">@color/textSecondary</item>
         <item name="android:windowBackground">@color/backgroundLight</item>
+        <item name="android:fontFamily">@font/poppins</item>
+        <item name="fontFamily">@font/poppins</item>
     </style>
 
     <style name="Theme.ClinicaApp.Splash" parent="Theme.MaterialComponents.DayNight.NoActionBar">
