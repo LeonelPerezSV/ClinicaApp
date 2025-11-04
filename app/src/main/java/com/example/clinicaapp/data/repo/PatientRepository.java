@@ -1,6 +1,7 @@
 package com.example.clinicaapp.data.repo;
 
 import android.content.Context;
+import android.util.Log;
 import androidx.lifecycle.LiveData;
 import com.example.clinicaapp.data.dao.PatientDao;
 import com.example.clinicaapp.data.db.AppDatabase;
@@ -13,6 +14,7 @@ public class PatientRepository {
     private final PatientDao dao;
     private final ExecutorService executor;
     private final FirebaseSyncRepository sync;
+    private static final String TAG = "PatientRepository";
 
     public PatientRepository(Context context) {
         dao = AppDatabase.getInstance(context).patientDao();
@@ -25,19 +27,36 @@ public class PatientRepository {
     public LiveData<Patient> getById(int id) { return dao.getById(id); }
 
     public void insert(Patient p) {
-        executor.execute(() -> { dao.insert(p); sync.upsertPatient(p); });
+        executor.execute(() -> {
+            long newId = dao.insert(p);
+            p.setId((int) newId);
+            sync.upsertPatient(p);
+        });
     }
 
     public void update(Patient p) {
-        executor.execute(() -> { dao.update(p); sync.upsertPatient(p); });
+        executor.execute(() -> {
+            dao.update(p);
+            sync.upsertPatient(p);
+        });
     }
 
+    //Borra el paciente localmente Y en Firestore.
     public void delete(Patient p) {
-        executor.execute(() -> { dao.delete(p); sync.deletePatient(p.getId()); });
+        executor.execute(() -> {
+            Log.d(TAG, "Intentando borrar paciente (objeto): " + p.getId());
+            dao.delete(p);
+            sync.deletePatient(p.getId());
+        });
     }
 
+    //Borra el paciente localmente Y en Firestore.
     public void deleteById(int id) {
-        executor.execute(() -> { dao.deleteById(id); sync.deletePatient(id); });
+        executor.execute(() -> {
+            Log.d(TAG, "Intentando borrar paciente (ID): " + id);
+            dao.deleteById(id);
+            sync.deletePatient(id);
+        });
     }
 
     public void deleteAll() {

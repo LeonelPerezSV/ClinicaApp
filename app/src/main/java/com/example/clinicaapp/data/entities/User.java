@@ -15,6 +15,7 @@ public class User {
     private String password;
     private String userType; // Paciente o Doctor
     private String role;     // admin, doctor, patient (si lo usas luego)
+    private String photoUrl; // URL de la foto de perfil
 
     // --- Constructor por defecto requerido por Room ---
     public User() {
@@ -47,4 +48,7 @@ public class User {
 
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
+
+    public String getPhotoUrl() { return photoUrl; }
+    public void setPhotoUrl(String photoUrl) { this.photoUrl = photoUrl; }
 }

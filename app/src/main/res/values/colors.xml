@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Paleta base -->
     <color name="brandPrimary">#43A047</color> <!-- Azul Figma -->
@@ -14,6 +13,7 @@
     <!-- Defaults -->
     <color name="blanco">@color/white</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="black">#FF000000</color>
     <color name="azulmedico">#2196F3</color>
 
     <color name="errorColor">#D32F2F</color>

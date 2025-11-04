@@ -15,6 +15,8 @@
     <string name="especialidad">Especialidad</string>
     <string name="guardar_doctor">Guardar Doctor</string>
     <string name="tel_fono">Teléfono</string>
+    <string name="logo_de_la_aplicaci_n">Logo de la aplicación</string>
+    <string name="splash_slogan">Gestiona tus citas médicas de forma fácil y rápida.</string>
 
 
 </resources>

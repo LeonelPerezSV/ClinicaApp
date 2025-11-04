@@ -42,6 +42,19 @@ public class MedicalRecordRepository {
         executor.execute(() -> { dao.deleteById(id); sync.deleteRecord(id); });
     }
 
+    //Borra todos los expedientes de un paciente específico, tanto localmente como en Firestore.
+    //@param patientId El ID del paciente cuyos expedientes se eliminarán.
+
+    public void deleteByPatientId(int patientId) {
+        executor.execute(() -> {
+            List<MedicalRecord> recordsToDelete = dao.getAllSyncByPatient(patientId);
+            for (MedicalRecord rec : recordsToDelete) {
+                sync.deleteRecord(rec.getId());
+            }
+            dao.deleteByPatientId(patientId);
+        });
+    }
+
     public void deleteAll() {
         executor.execute(dao::deleteAll);
     }

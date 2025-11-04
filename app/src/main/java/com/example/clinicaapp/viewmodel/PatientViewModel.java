@@ -6,9 +6,11 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 
-import com.example.clinicaapp.data.db.AppDatabase;
 import com.example.clinicaapp.data.entities.Patient;
+import com.example.clinicaapp.data.repo.AppointmentRepository;
+import com.example.clinicaapp.data.repo.MedicalRecordRepository;
 import com.example.clinicaapp.data.repo.PatientRepository;
+import com.example.clinicaapp.data.repo.PrescriptionRepository;
 
 import java.util.List;
 
@@ -51,15 +53,29 @@ public class PatientViewModel extends AndroidViewModel {
         repository.deleteAll();
     }
 
-    // 🔹 Eliminar paciente con cascada (citas, recetas, expediente)
+
+     //Elimina el paciente y todos sus datos asociados: citas, recetas, expediente
+     //utilizando los repositorios correspondientes para asegurar la sincronización con Firestore.
+     //@param patient El paciente a eliminar.
     public void deletePatientCascade(Patient patient) {
         new Thread(() -> {
-            AppDatabase db = AppDatabase.getInstance(getApplication());
+            // Se instancian los repositorios necesarios para el borrado en cascada.
+            AppointmentRepository appointmentRepo = new AppointmentRepository(getApplication());
+            PrescriptionRepository prescriptionRepo = new PrescriptionRepository(getApplication());
+            MedicalRecordRepository medicalRecordRepo = new MedicalRecordRepository(getApplication());
+
             int patientId = patient.getId();
-            db.prescriptionDao().deleteByPatientId(patientId);
-            db.appointmentDao().deleteByPatientId(patientId);
-            db.medicalRecordDao().deleteByPatientId(patientId);
-            db.patientDao().delete(patient);
+
+            //  Borrar datos asociados a través de sus repositorios.
+            //    Esto asegura que si esos repositorios tienen lógica de sincronización, se ejecute.
+            appointmentRepo.deleteByPatientId(patientId);
+            prescriptionRepo.deleteByPatientId(patientId);
+            medicalRecordRepo.deleteByPatientId(patientId);
+
+            // Borrar el paciente a través de su propio repositorio.
+            // Esto garantiza que se llame a FirebaseSyncRepository para borrarlo de la nube.
+            repository.delete(patient);
+            
         }).start();
     }
 }

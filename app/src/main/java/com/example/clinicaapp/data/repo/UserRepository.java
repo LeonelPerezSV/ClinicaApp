@@ -20,12 +20,12 @@ public class UserRepository {
         sync = new FirebaseSyncRepository(context);
     }
 
-    // 🔹 Obtener todos los usuarios
+    //Obtener todos los usuarios
     public LiveData<List<User>> getAll() {
         return dao.getAll();
     }
 
-    // 🔹 Insertar usuario y sincronizar
+    //Insertar usuario y sincronizar
     public void insert(User user) {
         executor.execute(() -> {
             dao.insert(user);
@@ -33,7 +33,7 @@ public class UserRepository {
         });
     }
 
-    // 🔹 Actualizar usuario
+    //Actualizar usuario
     public void update(User user) {
         executor.execute(() -> {
             dao.update(user);
@@ -41,36 +41,36 @@ public class UserRepository {
         });
     }
 
-    // 🔹 Eliminar usuario completo
+    //Eliminar usuario completo
     public void delete(User user) {
         executor.execute(() -> {
             dao.delete(user);
         });
     }
 
-    // 🔹 Eliminar por ID
+    //Eliminar por ID
     public void deleteById(int id) {
         executor.execute(() -> {
             dao.deleteById(id);
         });
     }
 
-    // 🔹 Eliminar todos los usuarios
+    //Eliminar todos los usuarios
     public void deleteAll() {
         executor.execute(dao::deleteAll);
     }
 
-    // 🔹 Login (sin Firebase)
+    //Login (sin Firebase)
     public User login(String username, String password) {
         return dao.login(username, password);
     }
 
-    // 🔹 Obtener usuario por ID
+    //Obtener usuario por ID
     public LiveData<User> getById(int id) {
         return dao.getById(id);
     }
 
-    // 🔹 Sincronizar todos los usuarios desde Firestore
+    //Sincronizar todos los usuarios desde Firestore
     public void syncAll() {
         executor.execute(sync::syncFromFirestore);
     }

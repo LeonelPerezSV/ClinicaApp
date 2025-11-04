@@ -8,7 +8,6 @@ import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
 import androidx.room.Update;
 
-import com.example.clinicaapp.data.entities.MedicalRecord;
 import com.example.clinicaapp.data.entities.Patient;
 import com.example.clinicaapp.data.entities.User;
 
@@ -17,8 +16,11 @@ import java.util.List;
 @Dao
 public interface PatientDao {
 
+
+     //devuelve el ID (long) del paciente insertado
+     //crucial para mantener la consistencia con Firestore
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    void insert(Patient patient);
+    long insert(Patient patient);
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertAll(List<Patient> patients);
@@ -52,7 +54,4 @@ public interface PatientDao {
 
     @Query("SELECT id FROM patients WHERE userId = :userId LIMIT 1")
     int getPatientIdByUserId(int userId);
-
-
-
 }

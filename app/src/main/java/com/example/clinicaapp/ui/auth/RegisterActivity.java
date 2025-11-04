@@ -76,12 +76,20 @@ public class RegisterActivity extends AppCompatActivity {
             return;
         }
 
-        // Crear usuario
+        // --- Creación y guardado del usuario ---
+        // Crear una nueva instancia de User
         User user = new User(fullName, email, password, selectedType);
+
+        // Añadir una URL de foto de perfil vacía por defecto
+        // Esto asegura que el campo photoUrl exista en Firestore desde el principio.
+        user.setPhotoUrl("");
+
+        // Insertar el usuario en la base de datos local (Room) y obtener su ID
         long userId = db.userDao().insert(user);
         user.setId((int) userId);
 
-        // Sincronizar con Firestore
+        // Sincronizar el nuevo usuario con Firestore. El repositorio se encargará de subir
+        // todos los campos, incluyendo photoUrl.
         FirebaseSyncRepository syncRepo = new FirebaseSyncRepository(this);
         syncRepo.syncUserToFirestore(user);
 

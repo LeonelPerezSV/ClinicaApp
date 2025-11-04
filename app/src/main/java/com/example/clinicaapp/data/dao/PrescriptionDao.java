@@ -29,19 +29,20 @@ public interface PrescriptionDao {
     @Query("DELETE FROM prescriptions")
     void deleteAll();
 
-    // 🔹 Todas las recetas (para doctor)
     @Query("SELECT * FROM prescriptions ORDER BY date DESC")
     LiveData<List<Prescription>> getAll();
 
-    // 🔹 Receta por ID
     @Query("SELECT * FROM prescriptions WHERE id = :id LIMIT 1")
     LiveData<Prescription> findById(int id);
 
-    // 🔹 Recetas filtradas por paciente
     @Query("SELECT * FROM prescriptions WHERE patientId = :patientId ORDER BY date DESC")
     LiveData<List<Prescription>> getByPatient(int patientId);
 
-    // 🔹 Eliminar receta por ID
+    //Obtiene una lista síncrona de todas las recetas de un paciente.
+    //Necesario para el borrado en cascada con sincronización.
+    @Query("SELECT * FROM prescriptions WHERE patientId = :patientId")
+    List<Prescription> getAllSyncByPatient(int patientId);
+
     @Query("DELETE FROM prescriptions WHERE id = :id")
     void deleteById(int id);
 

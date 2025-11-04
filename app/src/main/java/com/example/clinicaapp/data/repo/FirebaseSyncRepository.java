@@ -2,10 +2,6 @@ package com.example.clinicaapp.data.repo;
 
 import android.content.Context;
 import android.util.Log;
-import android.widget.Toast;
-
-import androidx.annotation.NonNull;
-
 import com.example.clinicaapp.data.db.AppDatabase;
 import com.example.clinicaapp.data.entities.*;
 import com.google.firebase.FirebaseApp;
@@ -19,11 +15,10 @@ public class FirebaseSyncRepository {
 
     private final FirebaseFirestore fs;
     private final AppDatabase db;
-    private final Context context;
     private static final String TAG = "FirebaseSync";
 
     public FirebaseSyncRepository(Context ctx) {
-        this.context = ctx.getApplicationContext();
+        Context context = ctx.getApplicationContext();
         try {
             FirebaseApp.initializeApp(context);
         } catch (Exception ignored) {}
@@ -32,7 +27,18 @@ public class FirebaseSyncRepository {
     }
 
     // =============================================================
-    // 🔸 USERS
+    // - MÉTODOS DE COMPATIBILIDAD
+    // =============================================================
+    public void syncFromFirestore() {
+        pullAllDown();
+    }
+
+    public void syncUserToFirestore(User user) {
+        upsertUser(user);
+    }
+
+    // =============================================================
+    // - USERS
     // =============================================================
     public void upsertUser(User u) {
         if (u == null) return;
@@ -41,40 +47,29 @@ public class FirebaseSyncRepository {
         data.put("fullName", u.getFullName());
         data.put("username", u.getUsername());
         data.put("userType", u.getUserType());
-        fs.collection("users").document("user_" + u.getId()).set(data)
-                .addOnSuccessListener(v -> Log.d(TAG, "✅ User synced: " + u.getUsername()))
-                .addOnFailureListener(e -> Log.e(TAG, "❌ User sync failed", e));
+        data.put("photoUrl", u.getPhotoUrl());
+        fs.collection("users").document(String.valueOf(u.getId())).set(data);
     }
 
-    // Compatibilidad con RegisterActivity
-    public void syncUserToFirestore(@NonNull User user) {
-        upsertUser(user);
-        Toast.makeText(context, "Usuario sincronizado en Firestore", Toast.LENGTH_SHORT).show();
-    }
-
-    // Compatibilidad con MainActivity
-    public void syncFromFirestore() {
+    public void pullUsersDown() {
         fs.collection("users").get().addOnSuccessListener(snap -> {
             for (DocumentSnapshot d : snap) {
                 try {
-                    User u = new User(
-                            d.getString("fullName"),
-                            d.getString("username"),
-                            "",
-                            d.getString("userType")
-                    );
+                    User u = new User(d.getString("fullName"), d.getString("username"), "", d.getString("userType"));
                     u.setId(d.getLong("id").intValue());
+                    if (d.contains("photoUrl")) {
+                        u.setPhotoUrl(d.getString("photoUrl"));
+                    }
                     db.userDao().insert(u);
                 } catch (Exception e) {
                     Log.e(TAG, "Error mapping user", e);
                 }
             }
-            Log.d(TAG, "⬇️ Users synced locally");
-        }).addOnFailureListener(e -> Log.e(TAG, "❌ Error pulling users", e));
+        });
     }
 
     // =============================================================
-    // 🔸 PATIENTS
+    // - PATIENTS
     // =============================================================
     public void upsertPatient(Patient p) {
         if (p == null) return;
@@ -85,38 +80,31 @@ public class FirebaseSyncRepository {
         data.put("email", p.getEmail());
         data.put("phone", p.getPhone());
         data.put("userId", p.getUserId());
-        data.put("createdAt", p.getCreatedAt());
-        fs.collection("patients").document("patient_" + p.getId()).set(data)
-                .addOnSuccessListener(v -> Log.d(TAG, "✅ Patient synced: " + p.getId()))
-                .addOnFailureListener(e -> Log.e(TAG, "❌ Patient sync failed", e));
+        fs.collection("patients").document(String.valueOf(p.getId())).set(data);
     }
 
     public void deletePatient(int id) {
-        fs.collection("patients").document("patient_" + id).delete();
+        fs.collection("patients").document(String.valueOf(id)).delete()
+                .addOnSuccessListener(aVoid -> Log.d(TAG, "Patient deleted from Firestore: " + id))
+                .addOnFailureListener(e -> Log.e(TAG, "Error deleting patient from Firestore: " + id, e));
     }
 
     public void pullPatientsDown() {
         fs.collection("patients").get().addOnSuccessListener(snap -> {
             for (DocumentSnapshot d : snap) {
                 try {
-                    Patient p = new Patient();
+                    Patient p = new Patient(d.getString("firstName"), d.getString("lastName"), d.getString("email"), d.getString("phone"), d.getLong("userId").intValue());
                     p.setId(d.getLong("id").intValue());
-                    p.setFirstName(d.getString("firstName"));
-                    p.setLastName(d.getString("lastName"));
-                    p.setEmail(d.getString("email"));
-                    p.setPhone(d.getString("phone"));
-                    p.setUserId(d.getLong("userId").intValue());
                     db.patientDao().insert(p);
                 } catch (Exception e) {
                     Log.e(TAG, "Error mapping patient", e);
                 }
             }
-            Log.d(TAG, "⬇️ Patients synced locally");
         });
     }
 
     // =============================================================
-    // 🔸 APPOINTMENTS
+    // - APPOINTMENTS
     // =============================================================
     public void upsertAppointment(Appointment a) {
         if (a == null) return;
@@ -128,38 +116,31 @@ public class FirebaseSyncRepository {
         data.put("time", a.getTime());
         data.put("status", a.getStatus());
         data.put("reason", a.getReason());
-        fs.collection("appointments").document("appointment_" + a.getId()).set(data)
-                .addOnSuccessListener(v -> Log.d(TAG, "✅ Appointment synced: " + a.getId()))
-                .addOnFailureListener(e -> Log.e(TAG, "❌ Appointment sync failed", e));
+        fs.collection("appointments").document(String.valueOf(a.getId())).set(data);
     }
 
     public void deleteAppointment(int id) {
-        fs.collection("appointments").document("appointment_" + id).delete();
+        fs.collection("appointments").document(String.valueOf(id)).delete()
+                .addOnSuccessListener(aVoid -> Log.d(TAG, "Appointment deleted from Firestore: " + id))
+                .addOnFailureListener(e -> Log.e(TAG, "Error deleting appointment from Firestore: " + id, e));
     }
 
     public void pullAppointmentsDown() {
         fs.collection("appointments").get().addOnSuccessListener(snap -> {
             for (DocumentSnapshot d : snap) {
                 try {
-                    Appointment a = new Appointment();
+                    Appointment a = new Appointment(d.getLong("patientId").intValue(), d.getLong("doctorId").intValue(), d.getString("date"), d.getString("time"), d.getString("reason"), d.getString("status"));
                     a.setId(d.getLong("id").intValue());
-                    a.setDoctorId(d.getLong("doctorId").intValue());
-                    a.setPatientId(d.getLong("patientId").intValue());
-                    a.setDate(d.getString("date"));
-                    a.setTime(d.getString("time"));
-                    a.setStatus(d.getString("status"));
-                    a.setReason(d.getString("reason"));
                     db.appointmentDao().insert(a);
                 } catch (Exception e) {
                     Log.e(TAG, "Error mapping appointment", e);
                 }
             }
-            Log.d(TAG, "⬇️ Appointments synced locally");
         });
     }
 
     // =============================================================
-    // 🔸 MEDICAL RECORDS
+    // - MEDICAL RECORDS
     // =============================================================
     public void upsertRecord(MedicalRecord r) {
         if (r == null) return;
@@ -169,36 +150,31 @@ public class FirebaseSyncRepository {
         data.put("summary", r.getSummary());
         data.put("allergies", r.getAllergies());
         data.put("notes", r.getNotes());
-        fs.collection("medical_records").document("record_" + r.getId()).set(data)
-                .addOnSuccessListener(v -> Log.d(TAG, "✅ Record synced: " + r.getId()))
-                .addOnFailureListener(e -> Log.e(TAG, "❌ Record sync failed", e));
+        fs.collection("medical_records").document(String.valueOf(r.getId())).set(data);
     }
 
     public void deleteRecord(int id) {
-        fs.collection("medical_records").document("record_" + id).delete();
+        fs.collection("medical_records").document(String.valueOf(id)).delete()
+                .addOnSuccessListener(aVoid -> Log.d(TAG, "Record deleted from Firestore: " + id))
+                .addOnFailureListener(e -> Log.e(TAG, "Error deleting record from Firestore: " + id, e));
     }
 
     public void pullRecordsDown() {
         fs.collection("medical_records").get().addOnSuccessListener(snap -> {
             for (DocumentSnapshot d : snap) {
                 try {
-                    MedicalRecord r = new MedicalRecord();
+                    MedicalRecord r = new MedicalRecord(d.getLong("patientId").intValue(), d.getString("summary"), d.getString("allergies"), d.getString("notes"));
                     r.setId(d.getLong("id").intValue());
-                    r.setPatientId(d.getLong("patientId").intValue());
-                    r.setSummary(d.getString("summary"));
-                    r.setAllergies(d.getString("allergies"));
-                    r.setNotes(d.getString("notes"));
                     db.medicalRecordDao().insert(r);
                 } catch (Exception e) {
                     Log.e(TAG, "Error mapping record", e);
                 }
             }
-            Log.d(TAG, "⬇️ Records synced locally");
         });
     }
 
     // =============================================================
-    // 🔸 PRESCRIPTIONS
+    // - PRESCRIPTIONS
     // =============================================================
     public void upsertPrescription(Prescription p) {
         if (p == null) return;
@@ -209,44 +185,36 @@ public class FirebaseSyncRepository {
         data.put("medication", p.getMedication());
         data.put("dosage", p.getDosage());
         data.put("notes", p.getNotes());
-        fs.collection("prescriptions").document("prescription_" + p.getId()).set(data)
-                .addOnSuccessListener(v -> Log.d(TAG, "✅ Prescription synced: " + p.getId()))
-                .addOnFailureListener(e -> Log.e(TAG, "❌ Prescription sync failed", e));
+        fs.collection("prescriptions").document(String.valueOf(p.getId())).set(data);
     }
 
     public void deletePrescription(int id) {
-        fs.collection("prescriptions").document("prescription_" + id).delete();
+        fs.collection("prescriptions").document(String.valueOf(id)).delete()
+                .addOnSuccessListener(aVoid -> Log.d(TAG, "Prescription deleted from Firestore: " + id))
+                .addOnFailureListener(e -> Log.e(TAG, "Error deleting prescription from Firestore: " + id, e));
     }
 
     public void pullPrescriptionsDown() {
         fs.collection("prescriptions").get().addOnSuccessListener(snap -> {
             for (DocumentSnapshot d : snap) {
                 try {
-                    Prescription p = new Prescription();
+                    Prescription p = new Prescription(d.getLong("patientId").intValue(), d.getString("date"), d.getString("medication"), d.getString("dosage"), d.getString("notes"));
                     p.setId(d.getLong("id").intValue());
-                    p.setPatientId(d.getLong("patientId").intValue());
-                    p.setDate(d.getString("date"));
-                    p.setMedication(d.getString("medication"));
-                    p.setDosage(d.getString("dosage"));
-                    p.setNotes(d.getString("notes"));
                     db.prescriptionDao().insert(p);
                 } catch (Exception e) {
                     Log.e(TAG, "Error mapping prescription", e);
                 }
             }
-            Log.d(TAG, "⬇️ Prescriptions synced locally");
         });
     }
 
     // =============================================================
-    // 🔸 FULL SYNC (usado por LoginActivity)
-    // =============================================================
     public void pullAllDown() {
-        syncFromFirestore(); // usuarios
+        pullUsersDown();
         pullPatientsDown();
         pullAppointmentsDown();
         pullRecordsDown();
         pullPrescriptionsDown();
-        Log.d(TAG, "⬇️ All entities downloaded from Firestore");
+        Log.d(TAG, "All entities downloaded from Firestore");
     }
 }

@@ -11,6 +11,13 @@
         android:label="Inicio"
         tools:layout="@layout/fragment_home" />
 
+    <!-- 👤 Mi Perfil -->
+    <fragment
+        android:id="@+id/nav_profile"
+        android:name="com.example.clinicaapp.ui.profile.EditProfileFragment"
+        android:label="Mi Perfil"
+        tools:layout="@layout/fragment_edit_profile" />
+
     <!-- 📅 Citas -->
     <fragment
         android:id="@+id/nav_citas"
