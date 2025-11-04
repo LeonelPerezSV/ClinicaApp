@@ -14,8 +14,12 @@ import java.util.List;
 @Dao
 public interface AppointmentDao {
 
+    /**
+     * [CORREGIDO] Ahora devuelve el ID (long) de la cita insertada.
+     * Esto es crucial para mantener la consistencia con Firestore.
+     */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    void insert(Appointment appointment);
+    long insert(Appointment appointment);
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertAll(List<Appointment> appointments);
@@ -70,8 +74,4 @@ public interface AppointmentDao {
 
     @Query("SELECT * FROM appointments ORDER BY date DESC, time DESC")
     List<Appointment> getAllSync();
-
-
-
-
 }

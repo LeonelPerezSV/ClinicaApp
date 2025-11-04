@@ -20,21 +20,22 @@ public class AppointmentRepository {
         sync = new FirebaseSyncRepository(context);
     }
 
-    public LiveData<List<Appointment>> getAll() {
-        return dao.getAll();
-    }
+    public LiveData<List<Appointment>> getAll() { return dao.getAll(); }
 
-    public LiveData<List<Appointment>> getByPatient(int patientId) {
-        return dao.getByPatient(patientId);
-    }
+    public LiveData<List<Appointment>> getByPatient(int patientId) { return dao.getByPatient(patientId); }
 
-    public LiveData<Appointment> getById(int id) {
-        return dao.getById(id);
-    }
+    public LiveData<Appointment> getById(int id) { return dao.getById(id); }
 
+    /**
+     * [CORREGIDO] Lógica de inserción para garantizar la consistencia de IDs.
+     * 1. Inserta la cita en Room y obtiene el ID que se le ha asignado.
+     * 2. Asigna ese ID al objeto cita.
+     * 3. Sube la cita a Firestore con el ID correcto.
+     */
     public void insert(Appointment a) {
         executor.execute(() -> {
-            dao.insert(a);
+            long newId = dao.insert(a);
+            a.setId((int) newId);
             sync.upsertAppointment(a);
         });
     }
@@ -59,10 +60,6 @@ public class AppointmentRepository {
             sync.deleteAppointment(id);
         });
     }
-
-
-     //Borra todas las citas de un paciente específico, tanto localmente como en Firestore.
-     //@param patientId El ID del paciente cuyas citas se eliminarán.
 
     public void deleteByPatientId(int patientId) {
         executor.execute(() -> {

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/scrollViewAppointmentForm"
     android:layout_width="match_parent"
@@ -16,46 +17,45 @@
         android:layout_height="wrap_content"
         android:paddingBottom="32dp">
 
-        <!--  Paciente -->
-        <TextView
-            android:text="Seleccionar Paciente"
-            android:textColor="@color/white"
-            android:textStyle="bold"
+        <!-- [CORREGIDO] Spinner de Paciente reemplazado por un Menú Desplegable Expuesto -->
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp" />
+            android:layout_marginTop="8dp"
+            android:hint="Seleccionar Paciente">
 
-        <Spinner
-            android:id="@+id/spinnerPatient"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@drawable/spinner_background"
-            android:padding="8dp"
-            android:theme="@style/SpinnerTheme" />
+            <AutoCompleteTextView
+                android:id="@+id/spinnerPatient"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="none" />
 
-        <!-- Doctor -->
-        <TextView
-            android:text="Seleccionar Doctor"
-            android:textColor="@color/white"
-            android:textStyle="bold"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp" />
+        </com.google.android.material.textfield.TextInputLayout>
 
-        <Spinner
-            android:id="@+id/spinnerDoctor"
+        <!-- [CORREGIDO] Spinner de Doctor reemplazado por un Menú Desplegable Expuesto -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/layoutSpinnerDoctor"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@drawable/spinner_background"
-            android:padding="8dp"
-            android:theme="@style/SpinnerTheme" />
+            android:layout_marginTop="12dp"
+            android:hint="Seleccionar Doctor">
+
+            <AutoCompleteTextView
+                android:id="@+id/spinnerDoctor"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="none" />
+
+        </com.google.android.material.textfield.TextInputLayout>
 
         <!-- Fecha -->
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Fecha (YYYY-MM-DD)"
-            style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox.Dense"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_marginTop="12dp">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -72,7 +72,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Hora (HH:mm)"
-            style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox.Dense"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_marginTop="12dp">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -84,20 +84,19 @@
                 android:layout_height="wrap_content" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!--Estado -->
+        <!-- Estado -->
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Estado de la Cita"
-            style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox.Dense"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
             android:layout_marginTop="12dp">
 
             <AutoCompleteTextView
                 android:id="@+id/inputStatus"
-                android:inputType="text"
+                android:inputType="none"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"/>
+                android:layout_height="wrap_content" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <!-- Motivo -->
@@ -105,7 +104,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Motivo de la cita"
-            style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox.Dense"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_marginTop="12dp">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -128,8 +127,8 @@
                 android:text="💾 Guardar Cita"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:backgroundTint="@color/brandPrimary"
-                android:textColor="@color/white"
+                android:backgroundTint="?attr/colorPrimary"
+                android:textColor="?attr/colorOnPrimary"
                 android:textAllCaps="false" />
 
             <Button
@@ -138,8 +137,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:backgroundTint="@color/brandAccent"
-                android:textColor="@color/white"
+                android:backgroundTint="?attr/colorSecondary"
+                android:textColor="?attr/colorOnSecondary"
                 android:textAllCaps="false" />
 
             <Button
@@ -148,8 +147,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:backgroundTint="@color/errorColor"
-                android:textColor="@color/white"
+                android:backgroundTint="?attr/colorError"
+                android:textColor="?attr/colorOnError"
                 android:textAllCaps="false"
                 android:visibility="gone" />
 
@@ -159,8 +158,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:backgroundTint="@color/brandPrimary"
-                android:textColor="@color/white"
+                android:backgroundTint="?attr/colorSecondary"
+                android:textColor="?attr/colorOnSecondary"
                 android:textAllCaps="false" />
 
         </LinearLayout>
