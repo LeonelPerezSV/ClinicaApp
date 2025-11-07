@@ -127,11 +127,23 @@
                 android:layout_height="wrap_content" />
         </LinearLayout>
 
+        <!-- Botón para ver el expediente -->
+        <Button
+            android:id="@+id/btnViewRecord"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:backgroundTint="?attr/colorSecondary"
+            android:textColor="?attr/colorOnSecondary"
+            android:layout_marginTop="16dp"
+            android:text="Ver Expediente Médico" />
+
         <Button
             android:id="@+id/btnDelete"
             android:text="Eliminar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:backgroundTint="?attr/colorError"
+            android:textColor="?attr/colorOnError"
             android:layout_marginTop="12dp"
             android:visibility="gone" />
     </LinearLayout>

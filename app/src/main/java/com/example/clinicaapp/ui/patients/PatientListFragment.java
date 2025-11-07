@@ -6,6 +6,7 @@ import android.widget.Toast;
 import androidx.annotation.*;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.widget.*;
 import com.example.clinicaapp.R;
 import com.example.clinicaapp.data.entities.Patient;
@@ -38,13 +39,11 @@ public class PatientListFragment extends Fragment implements PatientAdapter.OnPa
             binding.empty.setVisibility(list == null || list.isEmpty() ? View.VISIBLE : View.GONE);
         });
 
-        binding.fabAdd.setOnClickListener(v -> openForm(-1));
+        binding.fabAdd.setOnClickListener(v -> openPatientForm(-1));
 
         new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
             @Override
-            public boolean onMove(@NonNull RecyclerView rv, @NonNull RecyclerView.ViewHolder v1, @NonNull RecyclerView.ViewHolder v2) {
-                return false;
-            }
+            public boolean onMove(@NonNull RecyclerView rv, @NonNull RecyclerView.ViewHolder v1, @NonNull RecyclerView.ViewHolder v2) { return false; }
 
             @Override
             public void onSwiped(@NonNull RecyclerView.ViewHolder vh, int dir) {
@@ -52,7 +51,7 @@ public class PatientListFragment extends Fragment implements PatientAdapter.OnPa
 
                 new MaterialAlertDialogBuilder(requireContext())
                         .setTitle("Confirmar eliminación")
-                        .setMessage("¿Desea eliminar al paciente \"" + item.getName() + "\" y todos sus datos asociados (expediente y recetas)?")
+                        .setMessage("¿Desea eliminar al paciente \"" + item.getName() + "\" y todos sus datos asociados (citas, expediente y recetas)?")
                         .setIcon(android.R.drawable.ic_dialog_alert)
                         .setCancelable(false)
                         .setPositiveButton("Eliminar", (dialog, which) -> {
@@ -66,18 +65,16 @@ public class PatientListFragment extends Fragment implements PatientAdapter.OnPa
                         .show();
             }
         }).attachToRecyclerView(binding.recycler);
-
-
     }
 
-    private void openForm(int id) {
-        Fragment f = PatientFormFragment.newInstance(id);
-        requireActivity().getSupportFragmentManager()
-                .beginTransaction()
-                .replace(R.id.nav_host_fragment_content_main, f)
-                .addToBackStack(null)
-                .commit();
+    private void openPatientForm(int id) {
+        Bundle args = new Bundle();
+        args.putInt("arg_id", id); // La clave que espera PatientFormFragment
+        NavHostFragment.findNavController(this).navigate(R.id.patientFormFragment, args);
     }
 
-    @Override public void onClick(Patient item) { openForm(item.getId()); }
+    //Al hacer clic, navega al formulario de edición del paciente.
+    @Override public void onClick(Patient item) {
+        openPatientForm(item.getId());
+    }
 }

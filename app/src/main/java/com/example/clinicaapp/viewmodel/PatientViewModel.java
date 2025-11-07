@@ -33,6 +33,15 @@ public class PatientViewModel extends AndroidViewModel {
         return repository.getById(id);
     }
 
+    //Método para obtener el ID de paciente a partir del ID de usuario.
+     //Necesario para que un usuario de tipo 'Paciente' pueda ver su propia lista de citas.
+     //@param userId El ID del usuario logueado.
+     //@return Un LiveData que emitirá el ID del paciente correspondiente.
+
+    public LiveData<Integer> getPatientIdByUserId(int userId) {
+        return repository.getPatientIdByUserId(userId);
+    }
+
     public void insert(Patient patient) {
         repository.insert(patient);
     }
@@ -53,29 +62,19 @@ public class PatientViewModel extends AndroidViewModel {
         repository.deleteAll();
     }
 
-
-     //Elimina el paciente y todos sus datos asociados: citas, recetas, expediente
-     //utilizando los repositorios correspondientes para asegurar la sincronización con Firestore.
-     //@param patient El paciente a eliminar.
     public void deletePatientCascade(Patient patient) {
         new Thread(() -> {
-            // Se instancian los repositorios necesarios para el borrado en cascada.
             AppointmentRepository appointmentRepo = new AppointmentRepository(getApplication());
             PrescriptionRepository prescriptionRepo = new PrescriptionRepository(getApplication());
             MedicalRecordRepository medicalRecordRepo = new MedicalRecordRepository(getApplication());
 
             int patientId = patient.getId();
 
-            //  Borrar datos asociados a través de sus repositorios.
-            //    Esto asegura que si esos repositorios tienen lógica de sincronización, se ejecute.
             appointmentRepo.deleteByPatientId(patientId);
             prescriptionRepo.deleteByPatientId(patientId);
             medicalRecordRepo.deleteByPatientId(patientId);
 
-            // Borrar el paciente a través de su propio repositorio.
-            // Esto garantiza que se llame a FirebaseSyncRepository para borrarlo de la nube.
             repository.delete(patient);
-            
         }).start();
     }
 }

@@ -14,8 +14,9 @@ import java.util.List;
 @Dao
 public interface PrescriptionDao {
 
+    //Ahora devuelve el ID (long) de la receta insertada en la base de datos.
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    void insert(Prescription prescription);
+    long insert(Prescription prescription);
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertAll(List<Prescription> prescriptions);
@@ -38,8 +39,6 @@ public interface PrescriptionDao {
     @Query("SELECT * FROM prescriptions WHERE patientId = :patientId ORDER BY date DESC")
     LiveData<List<Prescription>> getByPatient(int patientId);
 
-    //Obtiene una lista síncrona de todas las recetas de un paciente.
-    //Necesario para el borrado en cascada con sincronización.
     @Query("SELECT * FROM prescriptions WHERE patientId = :patientId")
     List<Prescription> getAllSyncByPatient(int patientId);
 

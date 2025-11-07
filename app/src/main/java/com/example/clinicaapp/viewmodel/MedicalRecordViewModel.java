@@ -20,19 +20,19 @@ public class MedicalRecordViewModel extends AndroidViewModel {
     }
 
     public LiveData<List<MedicalRecord>> getAllRecords() { return allRecords; }
-    public LiveData<List<MedicalRecord>> getByPatient(int patientId) { return repository.getByPatient(patientId); }
+
+    public LiveData<MedicalRecord> getById(int id) { return repository.getById(id); }
+
+    //Expone el método para obtener el expediente de un paciente por su ID.
+    public LiveData<MedicalRecord> getRecordByPatientId(int patientId) {
+        return repository.getRecordByPatientId(patientId);
+    }
+
     public void insert(MedicalRecord record) { repository.insert(record); }
+
     public void update(MedicalRecord record) { repository.update(record); }
+
     public void delete(MedicalRecord record) { repository.delete(record); }
 
-    public LiveData<List<MedicalRecord>> getAll() {
-        return repository.getAll();
-    }
-
-    public void deleteById(int id) {
-        repository.deleteById(id);
-    }
-    public LiveData<MedicalRecord> getById(int id) {
-        return repository.getById(id);
-    }
+    public void deleteById(int id) { repository.deleteById(id); }
 }

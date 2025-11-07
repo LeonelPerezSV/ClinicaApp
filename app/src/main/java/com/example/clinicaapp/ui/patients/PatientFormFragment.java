@@ -9,6 +9,9 @@ import android.widget.Toast;
 import androidx.annotation.*;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.fragment.NavHostFragment;
+
+import com.example.clinicaapp.R;
 import com.example.clinicaapp.data.db.AppDatabase;
 import com.example.clinicaapp.data.entities.Patient;
 import com.example.clinicaapp.databinding.FragmentPatientFormBinding;
@@ -53,18 +56,41 @@ public class PatientFormFragment extends Fragment {
                     binding.inputPhone.setText(p.getPhone());
                     binding.inputCreatedAt.setText(p.getCreatedAt());
                     binding.btnDelete.setVisibility(View.VISIBLE);
+                    binding.btnViewRecord.setVisibility(View.VISIBLE); // Mostrar el botón si el paciente ya existe
                 }
             });
+        } else {
+            // Si es un paciente nuevo, ocultar el botón de ver expediente
+            binding.btnViewRecord.setVisibility(View.GONE);
         }
 
         binding.btnSave.setOnClickListener(v -> guardarPaciente());
-        binding.btnCancel.setOnClickListener(v -> requireActivity().getSupportFragmentManager().popBackStack());
+        binding.btnCancel.setOnClickListener(v -> getParentFragmentManager().popBackStack());
+        
+        // Listener para el botón de ver expediente
+        binding.btnViewRecord.setOnClickListener(v -> {
+            if (currentId != null) {
+                openMedicalRecord(currentId);
+            }
+        });
+
         binding.btnDelete.setOnClickListener(v -> {
             if (currentId == null) return;
             new AlertDialog.Builder(requireContext())
                     .setTitle("Eliminar Paciente")
-                    .setMessage("¿Deseas eliminar este paciente?")
-                    .setPositiveButton("Eliminar", (d, w) -> eliminarPaciente(currentId))
+                    .setMessage("¿Deseas eliminar este paciente y todos sus datos asociados?")
+                    .setPositiveButton("Eliminar", (d, w) -> {
+                        new Thread(() -> {
+                            Patient p = AppDatabase.getInstance(requireContext()).patientDao().findById(currentId);
+                            if (p != null) {
+                                requireActivity().runOnUiThread(() -> {
+                                    viewModel.deletePatientCascade(p);
+                                    Toast.makeText(requireContext(), "Paciente y datos asociados eliminados", Toast.LENGTH_SHORT).show();
+                                    getParentFragmentManager().popBackStack();
+                                });
+                            }
+                        }).start();
+                    })
                     .setNegativeButton("Cancelar", null)
                     .show();
         });
@@ -76,14 +102,7 @@ public class PatientFormFragment extends Fragment {
         String email = binding.inputEmail.getText().toString().trim();
         String phone = binding.inputPhone.getText().toString().trim();
 
-        // Limpiar errores previos
-        binding.layoutFirstName.setError(null);
-        binding.layoutLastName.setError(null);
-        binding.layoutEmail.setError(null);
-        binding.layoutPhone.setError(null);
-
         boolean valid = true;
-
         if (TextUtils.isEmpty(first)) {
             binding.layoutFirstName.setError("Ingrese el nombre");
             valid = false;
@@ -96,11 +115,6 @@ public class PatientFormFragment extends Fragment {
             binding.layoutEmail.setError("Correo no válido");
             valid = false;
         }
-        if (!TextUtils.isEmpty(phone) && !Patterns.PHONE.matcher(phone).matches()) {
-            binding.layoutPhone.setError("Teléfono no válido");
-            valid = false;
-        }
-
         if (!valid) return;
 
         Patient p = new Patient();
@@ -118,25 +132,13 @@ public class PatientFormFragment extends Fragment {
             Toast.makeText(getContext(), "Paciente actualizado", Toast.LENGTH_SHORT).show();
         }
 
-        requireActivity().getSupportFragmentManager().popBackStack();
+        getParentFragmentManager().popBackStack();
     }
 
-    private void eliminarPaciente(int id) {
-        // Obtén el paciente sincrónicamente y usa la cascada del ViewModel
-        new Thread(() -> {
-            Patient p = AppDatabase.getInstance(requireContext()).patientDao().findById(id);
-            if (p != null) {
-                requireActivity().runOnUiThread(() -> {
-                    viewModel.deletePatientCascade(p);
-                    Toast.makeText(requireContext(), "Paciente y datos asociados eliminados", Toast.LENGTH_SHORT).show();
-                    requireActivity().getSupportFragmentManager().popBackStack();
-                });
-            } else {
-                requireActivity().runOnUiThread(() ->
-                        Toast.makeText(requireContext(), "Paciente no encontrado", Toast.LENGTH_SHORT).show()
-                );
-            }
-        }).start();
+    private void openMedicalRecord(int patientId) {
+        Bundle args = new Bundle();
+        args.putInt("patient_id", patientId);
+        NavHostFragment.findNavController(this)
+                .navigate(R.id.medicalRecordFormFragment, args);
     }
-
 }

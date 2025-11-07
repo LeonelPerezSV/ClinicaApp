@@ -17,7 +17,7 @@
         android:layout_height="wrap_content"
         android:paddingBottom="32dp">
 
-        <!-- [CORREGIDO] Spinner de Paciente reemplazado por un Menú Desplegable Expuesto -->
+        <!-- Spinner de Paciente reemplazado por un Menú Desplegable Expuesto -->
         <com.google.android.material.textfield.TextInputLayout
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
             android:layout_width="match_parent"
@@ -33,7 +33,7 @@
 
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- [CORREGIDO] Spinner de Doctor reemplazado por un Menú Desplegable Expuesto -->
+        <!-- Spinner de Doctor reemplazado por un Menú Desplegable Expuesto -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/layoutSpinnerDoctor"
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"

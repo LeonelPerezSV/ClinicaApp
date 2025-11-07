@@ -16,9 +16,6 @@ import java.util.List;
 @Dao
 public interface PatientDao {
 
-
-     //devuelve el ID (long) del paciente insertado
-     //crucial para mantener la consistencia con Firestore
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     long insert(Patient patient);
 
@@ -52,6 +49,9 @@ public interface PatientDao {
     @Query("SELECT * FROM patients ORDER BY lastName ASC")
     List<Patient> getAllPatientsList();
 
+    //Ahora devuelve LiveData<Integer> para ser compatible con la arquitectura de ViewModel.
+
     @Query("SELECT id FROM patients WHERE userId = :userId LIMIT 1")
-    int getPatientIdByUserId(int userId);
+    LiveData<Integer> getPatientIdByUserId(int userId);
+
 }

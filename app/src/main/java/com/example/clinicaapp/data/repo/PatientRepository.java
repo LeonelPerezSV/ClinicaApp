@@ -26,6 +26,15 @@ public class PatientRepository {
 
     public LiveData<Patient> getById(int id) { return dao.getById(id); }
 
+    /**
+     * [NUEVO] Obtiene el ID de paciente asociado a un ID de usuario.
+     * @param userId El ID del usuario.
+     * @return Un LiveData que emitirá el ID del paciente.
+     */
+    public LiveData<Integer> getPatientIdByUserId(int userId) {
+        return dao.getPatientIdByUserId(userId);
+    }
+
     public void insert(Patient p) {
         executor.execute(() -> {
             long newId = dao.insert(p);
@@ -41,19 +50,17 @@ public class PatientRepository {
         });
     }
 
-    //Borra el paciente localmente Y en Firestore.
     public void delete(Patient p) {
         executor.execute(() -> {
-            Log.d(TAG, "Intentando borrar paciente (objeto): " + p.getId());
+            Log.d(TAG, "➡️ Intentando borrar paciente (objeto): " + p.getId());
             dao.delete(p);
             sync.deletePatient(p.getId());
         });
     }
 
-    //Borra el paciente localmente Y en Firestore.
     public void deleteById(int id) {
         executor.execute(() -> {
-            Log.d(TAG, "Intentando borrar paciente (ID): " + id);
+            Log.d(TAG, "➡️ Intentando borrar paciente (ID): " + id);
             dao.deleteById(id);
             sync.deletePatient(id);
         });

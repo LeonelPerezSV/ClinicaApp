@@ -14,8 +14,10 @@ import java.util.List;
 @Dao
 public interface MedicalRecordDao {
 
+    //los métodos de inserción y actualización devuelve el ID (long) del expediente insertado.
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    void insert(MedicalRecord record);
+    long insert(MedicalRecord record);
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertAll(List<MedicalRecord> records);
@@ -38,14 +40,12 @@ public interface MedicalRecordDao {
     @Query("SELECT * FROM medical_records WHERE id = :id LIMIT 1")
     LiveData<MedicalRecord> getById(int id);
 
-    @Query("SELECT * FROM medical_records WHERE patientId = :patientId ORDER BY id DESC")
-    LiveData<List<MedicalRecord>> getByPatient(int patientId);
+    @Query("SELECT * FROM medical_records WHERE patientId = :patientId LIMIT 1")
+    LiveData<MedicalRecord> getRecordByPatientId(int patientId);
 
     @Query("SELECT * FROM medical_records WHERE patientId = :patientId")
     List<MedicalRecord> getAllSyncByPatient(int patientId);
 
     @Query("DELETE FROM medical_records WHERE patientId = :patientId")
     void deleteByPatientId(int patientId);
-
-
 }

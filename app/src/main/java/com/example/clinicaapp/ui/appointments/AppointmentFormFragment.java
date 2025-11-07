@@ -1,16 +1,31 @@
 package com.example.clinicaapp.ui.appointments;
 
+import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.pdf.PdfDocument;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
+import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
+import android.widget.Spinner;
 import android.widget.Toast;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -25,6 +40,9 @@ import com.google.android.material.datepicker.MaterialDatePicker;
 import com.google.android.material.timepicker.MaterialTimePicker;
 import com.google.android.material.timepicker.TimeFormat;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -44,10 +62,18 @@ public class AppointmentFormFragment extends Fragment {
     private Integer currentId = null;
     private Doctor loggedDoctor = null;
 
-    public static AppointmentFormFragment newInstance(int id) {
-        return newInstance(id, false);
-    }
+    private final ActivityResultLauncher<String> requestPermissionLauncher = registerForActivityResult(
+            new ActivityResultContracts.RequestPermission(),
+            isGranted -> {
+                if (isGranted) {
+                    exportPdf();
+                } else {
+                    Toast.makeText(getContext(), "Permiso de almacenamiento denegado", Toast.LENGTH_SHORT).show();
+                }
+            }
+    );
 
+    public static AppointmentFormFragment newInstance(int id) { return newInstance(id, false); }
     public static AppointmentFormFragment newInstance(int id, boolean readOnly) {
         Bundle args = new Bundle();
         args.putInt(ARG_ID, id);
@@ -86,10 +112,7 @@ public class AppointmentFormFragment extends Fragment {
     private void setupObservers() {
         patientViewModel.getAll().observe(getViewLifecycleOwner(), patients -> {
             if (patients == null) return;
-            List<String> patientNames = patients.stream()
-                    .map(p -> p.getId() + " - " + p.getName())
-                    .collect(Collectors.toList());
-            ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, patientNames);
+            ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, patients.stream().map(p -> p.getId() + " - " + p.getName()).collect(Collectors.toList()));
             binding.spinnerPatient.setAdapter(adapter);
             if (currentId != null) loadExistingAppointment(currentId);
         });
@@ -120,14 +143,12 @@ public class AppointmentFormFragment extends Fragment {
     }
 
     private void setupDoctorSpinner(List<Doctor> doctors) {
-        List<String> doctorNames = doctors.stream()
-                .map(d -> d.getId() + " - " + d.getName())
-                .collect(Collectors.toList());
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, doctorNames);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, doctors.stream().map(d -> d.getId() + " - " + d.getName()).collect(Collectors.toList()));
         binding.spinnerDoctor.setAdapter(adapter);
     }
 
     private void setupUI() {
+        // Listeners de fecha, hora y estado restaurados para el formulario
         binding.inputDate.setOnClickListener(v -> {
             MaterialDatePicker<Long> picker = MaterialDatePicker.Builder.datePicker().build();
             picker.addOnPositiveButtonClickListener(selection -> {
@@ -145,12 +166,13 @@ public class AppointmentFormFragment extends Fragment {
             picker.show(getParentFragmentManager(), "timePicker");
         });
 
-        binding.btnSave.setOnClickListener(v -> saveAppointment());
-        binding.btnCancel.setOnClickListener(v -> getParentFragmentManager().popBackStack());
-
         String[] estados = {"Pendiente", "Completada", "Cancelada"};
         ArrayAdapter<String> statusAdapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_dropdown_item_1line, estados);
         binding.inputStatus.setAdapter(statusAdapter);
+
+        binding.btnSave.setOnClickListener(v -> saveAppointment());
+        binding.btnCancel.setOnClickListener(v -> getParentFragmentManager().popBackStack());
+        binding.btnExportPdf.setOnClickListener(v -> checkPermissionAndExport());
 
         if (getArguments() != null && getArguments().getBoolean(ARG_READ_ONLY, false)) {
             binding.spinnerPatient.setEnabled(false);
@@ -188,7 +210,7 @@ public class AppointmentFormFragment extends Fragment {
     }
 
     private void selectDropdownValue(AutoCompleteTextView dropdown, int idToSelect) {
-        ArrayAdapter<String> adapter = (ArrayAdapter<String>) dropdown.getAdapter();
+       ArrayAdapter<String> adapter = (ArrayAdapter<String>) dropdown.getAdapter();
         if (adapter == null) return;
         for (int i = 0; i < adapter.getCount(); i++) {
             String item = adapter.getItem(i);
@@ -244,5 +266,105 @@ public class AppointmentFormFragment extends Fragment {
         }
 
         getParentFragmentManager().popBackStack();
+    }
+
+    private void checkPermissionAndExport() {
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+            exportPdf();
+        } else {
+            requestPermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        }
+    }
+
+    private void exportPdf() {
+        String patientString = binding.spinnerPatient.getText().toString();
+        String date = binding.inputDate.getText().toString();
+        String time = binding.inputTime.getText().toString();
+        String status = binding.inputStatus.getText().toString();
+        String reason = binding.inputReason.getText().toString();
+
+        if (patientString.isEmpty()) {
+            Toast.makeText(getContext(), "No se puede exportar sin un paciente seleccionado", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        int patientId = Integer.parseInt(patientString.split(" - ")[0]);
+        String patientName = patientString.split(" - ")[1];
+
+        int doctorId;
+        String doctorName;
+        if (loggedDoctor != null) {
+            doctorId = loggedDoctor.getId();
+            doctorName = loggedDoctor.getName();
+        } else {
+            String doctorString = binding.spinnerDoctor.getText().toString();
+            if(doctorString.isEmpty()) {
+                Toast.makeText(getContext(), "No se puede exportar sin un doctor seleccionado", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            doctorId = Integer.parseInt(doctorString.split(" - ")[0]);
+            doctorName = doctorString.split(" - ")[1];
+        }
+
+        try {
+            PdfDocument doc = new PdfDocument();
+            PdfDocument.PageInfo info = new PdfDocument.PageInfo.Builder(595, 842, 1).create();
+            PdfDocument.Page page = doc.startPage(info);
+            Canvas canvas = page.getCanvas();
+
+            Paint title = new Paint();
+            title.setTextSize(20f);
+            title.setFakeBoldText(true);
+
+            Paint text = new Paint();
+            text.setTextSize(14f);
+
+            int x = 40, y = 60, dy = 28;
+
+            canvas.drawText("CLINICAPP – Detalle de Cita Médica", x, y, title);
+            y += dy;
+            canvas.drawLine(x, y, info.getPageWidth() - x, y, text);
+            y += dy;
+
+            canvas.drawText("Fecha: " + date + "  Hora: " + time, x, y, text);
+            y += dy;
+            canvas.drawText("Paciente: " + patientId + " - " + patientName, x, y, text);
+            y += dy;
+            canvas.drawText("Doctor: " + doctorId + " - " + doctorName, x, y, text);
+            y += dy;
+            canvas.drawText("Estado: " + status, x, y, text);
+            y += dy;
+
+            canvas.drawText("Motivo de la Cita:", x, y, title);
+            y += dy;
+            canvas.drawText(TextUtils.isEmpty(reason) ? "—" : reason, x, y, text);
+
+            doc.finishPage(page);
+
+            File outDir = requireContext().getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+            File pdfFile = new File(outDir, "cita_" + System.currentTimeMillis() + ".pdf");
+            try (FileOutputStream fos = new FileOutputStream(pdfFile)) {
+                doc.writeTo(fos);
+            }
+            doc.close();
+
+            openPdfFile(pdfFile);
+
+        } catch (IOException e) {
+            Log.e("PdfExport", "Error al generar PDF", e);
+            Toast.makeText(getContext(), "Error al generar PDF", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void openPdfFile(File file) {
+        try {
+            Uri uri = FileProvider.getUriForFile(requireContext(), requireContext().getPackageName() + ".provider", file);
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setDataAndType(uri, "application/pdf");
+            intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            startActivity(Intent.createChooser(intent, "Abrir con"));
+        } catch (Exception e) {
+            Toast.makeText(getContext(), "No se encontró visor PDF", Toast.LENGTH_SHORT).show();
+        }
     }
 }
