@@ -3,6 +3,7 @@ package com.example.clinicaapp.ui.auth;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.*;
 import androidx.appcompat.app.AppCompatActivity;
@@ -11,7 +12,8 @@ import com.example.clinicaapp.MainActivity;
 import com.example.clinicaapp.R;
 import com.example.clinicaapp.data.db.AppDatabase;
 import com.example.clinicaapp.data.entities.User;
-import com.example.clinicaapp.data.repo.FirebaseSyncRepository;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 import java.util.regex.Pattern;
 
@@ -24,6 +26,7 @@ public class LoginActivity extends AppCompatActivity {
     private CheckBox cbRemember;
     private String selectedUserType = "Paciente";
     private AppDatabase db;
+    private FirebaseAuth mAuth;
 
     // Validaciones
     private static final Pattern EMAIL_PATTERN =
@@ -41,6 +44,7 @@ public class LoginActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        mAuth = FirebaseAuth.getInstance();
         SharedPreferences session = getSharedPreferences("session", MODE_PRIVATE);
         if (session.getBoolean("logged_in", false)) {
             startActivity(new Intent(this, MainActivity.class));
@@ -99,47 +103,62 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
+        mAuth.signInWithEmailAndPassword(username, password)
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) {
+                        // Sign in success
+                        Log.d("LoginActivity", "signInWithEmail:success");
+                        FirebaseUser firebaseUser = mAuth.getCurrentUser();
+                        User user = db.userDao().findByUsername(firebaseUser.getEmail());
+                        onLoginSuccess(user, password);
+                    } else {
+                        // If sign in fails, try local login
+                        Log.w("LoginActivity", "signInWithEmail:failure", task.getException());
+                        tryLocalLogin(username, password);
+                    }
+                });
+    }
+
+    private void tryLocalLogin(String username, String password) {
         try {
             User user = db.userDao().login(username, password);
             if (user == null) {
                 Toast.makeText(this, "Usuario o contraseña incorrectos", Toast.LENGTH_SHORT).show();
                 return;
             }
-
-            // Guardar sesión
-            SharedPreferences session = getSharedPreferences("session", MODE_PRIVATE);
-            session.edit().putBoolean("logged_in", true).apply();
-
-            SharedPreferences prefs = getSharedPreferences("ClinicaAppPrefs", MODE_PRIVATE);
-            prefs.edit()
-                    .putString("user_type", user.getUserType() == null ? "Paciente" : user.getUserType())
-                    .putString("user_name", user.getFullName() == null ? user.getUsername() : user.getFullName())
-                    .putLong("user_id", user.getId())
-                    .apply();
-
-            // Recordarme
-            SharedPreferences.Editor e = prefs.edit();
-            if (cbRemember.isChecked()) {
-                e.putBoolean("remember_me", true);
-                e.putString("remember_user", username);
-                e.putString("remember_pass", password);
-            } else {
-                e.remove("remember_me");
-                e.remove("remember_user");
-                e.remove("remember_pass");
-            }
-            e.apply();
-
-
-
-            startActivity(new Intent(this, MainActivity.class));
-            finish();
-
+            onLoginSuccess(user, password);
         } catch (Exception e) {
             Toast.makeText(this, "Error al iniciar sesión: " + e.getMessage(), Toast.LENGTH_LONG).show();
             e.printStackTrace();
         }
     }
 
+    private void onLoginSuccess(User user, String password) {
+        // Guardar sesión
+        SharedPreferences session = getSharedPreferences("session", MODE_PRIVATE);
+        session.edit().putBoolean("logged_in", true).apply();
 
+        SharedPreferences prefs = getSharedPreferences("ClinicaAppPrefs", MODE_PRIVATE);
+        prefs.edit()
+                .putString("user_type", user.getUserType() == null ? "Paciente" : user.getUserType())
+                .putString("user_name", user.getFullName() == null ? user.getUsername() : user.getFullName())
+                .putLong("user_id", user.getId())
+                .apply();
+
+        // Recordarme
+        SharedPreferences.Editor e = prefs.edit();
+        if (cbRemember.isChecked()) {
+            e.putBoolean("remember_me", true);
+            e.putString("remember_user", user.getUsername());
+            e.putString("remember_pass", password);
+        } else {
+            e.remove("remember_me");
+            e.remove("remember_user");
+            e.remove("remember_pass");
+        }
+        e.apply();
+
+        startActivity(new Intent(this, MainActivity.class));
+        finish();
+    }
 }

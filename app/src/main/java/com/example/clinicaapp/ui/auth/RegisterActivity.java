@@ -1,6 +1,7 @@
 package com.example.clinicaapp.ui.auth;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.*;
 import androidx.appcompat.app.AppCompatActivity;
@@ -8,6 +9,8 @@ import com.example.clinicaapp.R;
 import com.example.clinicaapp.data.db.AppDatabase;
 import com.example.clinicaapp.data.entities.User;
 import com.example.clinicaapp.data.repo.FirebaseSyncRepository;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 import java.util.regex.Pattern;
 
@@ -18,6 +21,7 @@ public class RegisterActivity extends AppCompatActivity {
     private Button btnRegister;
     private String selectedType = "Paciente";
     private AppDatabase db;
+    private FirebaseAuth mAuth;
 
     private static final Pattern EMAIL_PATTERN =
             Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$");
@@ -28,6 +32,8 @@ public class RegisterActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_register);
+
+        mAuth = FirebaseAuth.getInstance();
 
         edtFullName = findViewById(R.id.edtFullName);
         edtUser = findViewById(R.id.edtUser);
@@ -76,67 +82,79 @@ public class RegisterActivity extends AppCompatActivity {
             return;
         }
 
-        // --- Creación y guardado del usuario ---
-        // Crear una nueva instancia de User
-        User user = new User(fullName, email, password, selectedType);
+        mAuth.createUserWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) {
+                        // Sign in success, update UI with the signed-in user's information
+                        Log.d("RegisterActivity", "createUserWithEmail:success");
+                        FirebaseUser firebaseUser = mAuth.getCurrentUser();
+                        String firebaseUid = firebaseUser.getUid();
 
-        // Añadir una URL de foto de perfil vacía por defecto
-        // Esto asegura que el campo photoUrl exista en Firestore desde el principio.
-        user.setPhotoUrl("");
+                        // Crear una nueva instancia de User
+                        User user = new User(fullName, email, "", selectedType, firebaseUid);
 
-        // Insertar el usuario en la base de datos local (Room) y obtener su ID
-        long userId = db.userDao().insert(user);
-        user.setId((int) userId);
+                        // Añadir una URL de foto de perfil vacía por defecto
+                        user.setPhotoUrl("");
 
-        // Sincronizar el nuevo usuario con Firestore. El repositorio se encargará de subir
-        // todos los campos, incluyendo photoUrl.
-        FirebaseSyncRepository syncRepo = new FirebaseSyncRepository(this);
-        syncRepo.syncUserToFirestore(user);
+                        // Insertar el usuario en la base de datos local (Room) y obtener su ID
+                        long userId = db.userDao().insert(user);
+                        user.setId((int) userId);
 
-        // Crear perfil automático
-        if ("Doctor".equalsIgnoreCase(selectedType)) {
-            try {
-                com.example.clinicaapp.data.repo.DoctorRepository doctorRepo =
-                        new com.example.clinicaapp.data.repo.DoctorRepository(this);
-                com.example.clinicaapp.data.entities.Doctor doctor =
-                        new com.example.clinicaapp.data.entities.Doctor(fullName, "General", email, "0000-0000");
-                doctorRepo.insert(doctor);
-            } catch (Exception e) {
-                e.printStackTrace();
-                Toast.makeText(this, "Error creando perfil de doctor", Toast.LENGTH_SHORT).show();
-            }
-        } else {
-            try {
-                com.example.clinicaapp.data.repo.PatientRepository patientRepo =
-                        new com.example.clinicaapp.data.repo.PatientRepository(this);
-                String[] parts = fullName.split(" ", 2);
-                String first = parts.length > 0 ? parts[0] : fullName;
-                String last = parts.length > 1 ? parts[1] : "";
-                com.example.clinicaapp.data.entities.Patient p =
-                        new com.example.clinicaapp.data.entities.Patient(first, last, email, "0000-0000", user.getId());
-                patientRepo.insert(p);
+                        // Sincronizar el nuevo usuario con Firestore.
+                        FirebaseSyncRepository syncRepo = new FirebaseSyncRepository(this);
+                        syncRepo.syncUserToFirestore(user);
 
-                new android.os.Handler().postDelayed(() -> {
-                    com.example.clinicaapp.data.entities.Patient lastPatient =
-                            db.patientDao().getAllPatientsList().get(db.patientDao().getAllPatientsList().size() - 1);
-                    if (lastPatient != null) {
-                        com.example.clinicaapp.data.repo.MedicalRecordRepository recordRepo =
-                                new com.example.clinicaapp.data.repo.MedicalRecordRepository(this);
-                        com.example.clinicaapp.data.entities.MedicalRecord record =
-                                new com.example.clinicaapp.data.entities.MedicalRecord(
-                                        lastPatient.getId(),
-                                        "Sin diagnóstico inicial",
-                                        "Sin alergias registradas",
-                                        "Sin notas médicas");
-                        recordRepo.insert(record);
+                        // Crear perfil automático
+                        if ("Doctor".equalsIgnoreCase(selectedType)) {
+                            try {
+                                com.example.clinicaapp.data.repo.DoctorRepository doctorRepo =
+                                        new com.example.clinicaapp.data.repo.DoctorRepository(this);
+                                com.example.clinicaapp.data.entities.Doctor doctor =
+                                        new com.example.clinicaapp.data.entities.Doctor(fullName, "General", email, "0000-0000");
+                                doctorRepo.insert(doctor);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                                Toast.makeText(this, "Error creando perfil de doctor", Toast.LENGTH_SHORT).show();
+                            }
+                        } else {
+                            try {
+                                com.example.clinicaapp.data.repo.PatientRepository patientRepo =
+                                        new com.example.clinicaapp.data.repo.PatientRepository(this);
+                                String[] parts = fullName.split(" ", 2);
+                                String first = parts.length > 0 ? parts[0] : fullName;
+                                String last = parts.length > 1 ? parts[1] : "";
+                                com.example.clinicaapp.data.entities.Patient p =
+                                        new com.example.clinicaapp.data.entities.Patient(first, last, email, "0000-0000", user.getId());
+                                patientRepo.insert(p);
+
+                                new android.os.Handler().postDelayed(() -> {
+                                    com.example.clinicaapp.data.entities.Patient lastPatient =
+                                            db.patientDao().getAllPatientsList().get(db.patientDao().getAllPatientsList().size() - 1);
+                                    if (lastPatient != null) {
+                                        com.example.clinicaapp.data.repo.MedicalRecordRepository recordRepo =
+                                                new com.example.clinicaapp.data.repo.MedicalRecordRepository(this);
+                                        com.example.clinicaapp.data.entities.MedicalRecord record =
+                                                new com.example.clinicaapp.data.entities.MedicalRecord(
+                                                        lastPatient.getId(),
+                                                        "Sin diagnóstico inicial",
+                                                        "Sin alergias registradas",
+                                                        "Sin notas médicas");
+                                        recordRepo.insert(record);
+                                    }
+                                }, 400);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+
+                        Toast.makeText(this, "Usuario registrado correctamente", Toast.LENGTH_SHORT).show();
+                        finish();
+                    } else {
+                        // If sign in fails, display a message to the user.
+                        Log.w("RegisterActivity", "createUserWithEmail:failure", task.getException());
+                        Toast.makeText(RegisterActivity.this, "Authentication failed.",
+                                Toast.LENGTH_SHORT).show();
                     }
-                }, 400);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-
-        Toast.makeText(this, "Usuario registrado correctamente", Toast.LENGTH_SHORT).show();
-        finish();
+                });
     }
 }
