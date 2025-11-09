@@ -15,7 +15,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -27,6 +26,8 @@ import com.example.clinicaapp.R;
 import com.example.clinicaapp.data.db.AppDatabase;
 import com.example.clinicaapp.data.entities.User;
 import com.google.android.material.imageview.ShapeableImageView;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
 
@@ -39,7 +40,11 @@ import java.util.Map;
 public class EditProfileFragment extends Fragment {
 
     private ShapeableImageView profileImageView;
-    private EditText nameEditText;
+    private TextInputEditText nameEditText;
+    private TextInputEditText emailEditText;
+    private TextInputEditText phoneEditText;
+    private TextInputEditText specialtyEditText;
+    private TextInputLayout specialtyInputLayout;
     private Button saveButton;
     private AppDatabase db;
     private FirebaseFirestore firestore;
@@ -65,6 +70,10 @@ public class EditProfileFragment extends Fragment {
 
         profileImageView = view.findViewById(R.id.profileImageView);
         nameEditText = view.findViewById(R.id.nameEditText);
+        emailEditText = view.findViewById(R.id.emailEditText);
+        phoneEditText = view.findViewById(R.id.phoneEditText);
+        specialtyEditText = view.findViewById(R.id.specialtyEditText);
+        specialtyInputLayout = view.findViewById(R.id.specialtyInputLayout);
         saveButton = view.findViewById(R.id.saveButton);
 
         db = AppDatabase.getInstance(requireContext());
@@ -81,8 +90,22 @@ public class EditProfileFragment extends Fragment {
     private void loadUserData() {
         SharedPreferences prefs = requireActivity().getSharedPreferences("ClinicaAppPrefs", Context.MODE_PRIVATE);
         String currentName = prefs.getString("user_name", "");
+        String email = prefs.getString("user_email", "");
         String photoData = prefs.getString("user_photo_url", null);
+        String userType = prefs.getString("user_type", "Paciente");
+        String phone = prefs.getString("user_phone", "");
+        String specialty = prefs.getString("user_specialty", "");
+
         nameEditText.setText(currentName);
+        emailEditText.setText(email);
+        phoneEditText.setText(phone);
+
+        if ("Doctor".equals(userType)) {
+            specialtyInputLayout.setVisibility(View.VISIBLE);
+            specialtyEditText.setText(specialty);
+        } else {
+            specialtyInputLayout.setVisibility(View.GONE);
+        }
 
         if (photoData != null && !photoData.isEmpty()) {
             try {
@@ -115,6 +138,8 @@ public class EditProfileFragment extends Fragment {
 
     private void saveChanges() {
         String newName = nameEditText.getText().toString().trim();
+        String newPhone = phoneEditText.getText().toString().trim();
+        String newSpecialty = specialtyEditText.getText().toString().trim();
         if (newName.isEmpty()) {
             Toast.makeText(getContext(), "El nombre no puede estar vacío", Toast.LENGTH_SHORT).show();
             return;
@@ -123,50 +148,83 @@ public class EditProfileFragment extends Fragment {
         long userId = prefs.getLong("user_id", -1);
         if (userId == -1) return;
 
-        updateUserData(userId, newName, newProfileImageBase64);
+        updateUserData(userId, newName, newPhone, newSpecialty, newProfileImageBase64);
     }
 
+    private void updateUserData(long userId, String newName, String newPhone, String newSpecialty, @Nullable String newPhotoBase64) {
+        // Update local UI and DB immediately for better UX
+        updateLocalData(userId, newName, newPhone, newSpecialty, newPhotoBase64);
 
-     //Esto crea el documento si no existe o lo actualiza si ya existe
-    private void updateUserData(long userId, String newName, @Nullable String newPhotoBase64) {
-        Map<String, Object> updates = new HashMap<>();
-        updates.put("fullName", newName);
+        // --- Update Firestore --- //
+
+        // 1. Update the 'users' collection (fullName, photoUrl)
+        Map<String, Object> userUpdates = new HashMap<>();
+        userUpdates.put("fullName", newName);
         if (newPhotoBase64 != null) {
-            updates.put("photoUrl", newPhotoBase64);
+            userUpdates.put("photoUrl", newPhotoBase64);
+        }
+        firestore.collection("users").document(String.valueOf(userId))
+            .set(userUpdates, SetOptions.merge())
+            .addOnSuccessListener(aVoid -> Log.d("EditProfileFragment", "User main data updated in Firestore."))
+            .addOnFailureListener(e -> Log.e("EditProfileFragment", "Error updating user main data", e));
+
+        // 2. Update the sub-collection (phone, specialty)
+        Map<String, Object> subCollectionUpdates = new HashMap<>();
+        subCollectionUpdates.put("phone", newPhone);
+
+        SharedPreferences prefs = requireActivity().getSharedPreferences("ClinicaAppPrefs", Context.MODE_PRIVATE);
+        String userType = prefs.getString("user_type", "");
+
+        if ("Doctor".equals(userType)) {
+            subCollectionUpdates.put("specialty", newSpecialty);
+            firestore.collection("doctors").document(String.valueOf(userId))
+                .set(subCollectionUpdates, SetOptions.merge());
+        } else if ("Paciente".equals(userType)) {
+            firestore.collection("patients").whereEqualTo("userId", userId).limit(1).get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    if (!queryDocumentSnapshots.isEmpty()) {
+                        String patientDocId = queryDocumentSnapshots.getDocuments().get(0).getId();
+                        firestore.collection("patients").document(patientDocId)
+                            .set(subCollectionUpdates, SetOptions.merge());
+                    }
+                });
         }
 
-        firestore.collection("users").document(String.valueOf(userId))
-            .set(updates, SetOptions.merge())
-            .addOnSuccessListener(aVoid -> {
-                new Thread(() -> {
-                    User user = db.userDao().findById((int) userId);
-                    if (user != null) {
-                        user.setFullName(newName);
-                        if (newPhotoBase64 != null) {
-                            user.setPhotoUrl(newPhotoBase64);
-                        }
-                        db.userDao().update(user);
-                    }
-                }).start();
-
-                SharedPreferences.Editor editor = requireActivity().getSharedPreferences("ClinicaAppPrefs", Context.MODE_PRIVATE).edit();
-                editor.putString("user_name", newName);
-                if (newPhotoBase64 != null) {
-                    editor.putString("user_photo_url", newPhotoBase64);
-                }
-                editor.apply();
-
-                Toast.makeText(getContext(), "Perfil actualizado con éxito", Toast.LENGTH_SHORT).show();
-                getParentFragmentManager().popBackStack();
-            })
-            .addOnFailureListener(e -> {
-                Log.e("EditProfileFragment", "Error al escribir en Firestore", e);
-                Toast.makeText(getContext(), "Error al actualizar el perfil en la nube.", Toast.LENGTH_SHORT).show();
-            });
+        Toast.makeText(getContext(), "Perfil actualizado con éxito", Toast.LENGTH_SHORT).show();
+        getParentFragmentManager().popBackStack();
     }
 
-    //Comprime la imagen a JPEG en lugar de PNG
-    //es más eficiente para fotos y genera cadenas Base64 más cortas.
+    private void updateLocalData(long userId, String newName, String newPhone, String newSpecialty, @Nullable String newPhotoBase64) {
+        // Update SharedPreferences
+        SharedPreferences prefs = requireActivity().getSharedPreferences("ClinicaAppPrefs", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = prefs.edit();
+        editor.putString("user_name", newName);
+        editor.putString("user_phone", newPhone);
+        if ("Doctor".equals(prefs.getString("user_type", ""))) {
+            editor.putString("user_specialty", newSpecialty);
+        }
+        if (newPhotoBase64 != null) {
+            editor.putString("user_photo_url", newPhotoBase64);
+        }
+        editor.apply();
+
+        // Update local database in background
+        new Thread(() -> {
+            User user = db.userDao().findById((int) userId);
+            if (user != null) {
+                user.setFullName(newName);
+                user.setPhone(newPhone);
+                if ("Doctor".equals(user.getUserType())) {
+                    user.setSpecialty(newSpecialty);
+                }
+                if (newPhotoBase64 != null) {
+                    user.setPhotoUrl(newPhotoBase64);
+                }
+                db.userDao().update(user);
+            }
+        }).start();
+    }
+
     public String bitmapToBase64(Bitmap bitmap) {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         bitmap.compress(Bitmap.CompressFormat.JPEG, 85, byteArrayOutputStream);

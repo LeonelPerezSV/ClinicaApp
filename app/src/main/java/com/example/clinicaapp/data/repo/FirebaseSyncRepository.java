@@ -10,6 +10,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Consumer;
 
 public class FirebaseSyncRepository {
 
@@ -51,16 +52,100 @@ public class FirebaseSyncRepository {
         fs.collection("users").document(String.valueOf(u.getId())).set(data);
     }
 
+    public void pullUserByEmail(String email, Consumer<User> onUserFetched) {
+        fs.collection("users").whereEqualTo("username", email).limit(1).get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    if (!queryDocumentSnapshots.isEmpty()) {
+                        DocumentSnapshot userDoc = queryDocumentSnapshots.getDocuments().get(0);
+                        try {
+                            User freshUser = new User(userDoc.getString("fullName"), userDoc.getString("username"), "", userDoc.getString("userType"));
+                            long id = userDoc.getLong("id") != null ? userDoc.getLong("id") : -1;
+                            freshUser.setId((int)id);
+                            if (userDoc.contains("photoUrl")) {
+                                freshUser.setPhotoUrl(userDoc.getString("photoUrl"));
+                            }
+
+                            if ("Doctor".equals(freshUser.getUserType())) {
+                                fs.collection("doctors").document(String.valueOf(id)).get()
+                                    .addOnSuccessListener(doctorDoc -> {
+                                        if (doctorDoc.exists()) {
+                                            freshUser.setSpecialty(doctorDoc.getString("specialty"));
+                                            freshUser.setPhone(doctorDoc.getString("phone"));
+                                        }
+                                        saveUserAndCallback(freshUser, onUserFetched);
+                                    })
+                                    .addOnFailureListener(e -> saveUserAndCallback(freshUser, onUserFetched));
+                            } else if ("Paciente".equals(freshUser.getUserType())) {
+                                fs.collection("patients").whereEqualTo("userId", id).limit(1).get()
+                                    .addOnSuccessListener(patientDocs -> {
+                                        if (!patientDocs.isEmpty()) {
+                                            DocumentSnapshot patientDoc = patientDocs.getDocuments().get(0);
+                                            freshUser.setPhone(patientDoc.getString("phone"));
+                                        }
+                                        saveUserAndCallback(freshUser, onUserFetched);
+                                    })
+                                    .addOnFailureListener(e -> saveUserAndCallback(freshUser, onUserFetched));
+                            } else {
+                                saveUserAndCallback(freshUser, onUserFetched);
+                            }
+
+                        } catch (Exception e) {
+                            Log.e(TAG, "Error mapping user from Firestore", e);
+                            onUserFetched.accept(null);
+                        }
+                    } else {
+                        onUserFetched.accept(null); // User not found
+                    }
+                }).addOnFailureListener(e -> {
+                    Log.e(TAG, "Error fetching user by email", e);
+                    onUserFetched.accept(null);
+                });
+    }
+
+    private void saveUserAndCallback(User user, Consumer<User> onUserFetched) {
+        new Thread(() -> {
+            db.userDao().insert(user);
+            if (onUserFetched != null) {
+                onUserFetched.accept(user);
+            }
+        }).start();
+    }
+
     public void pullUsersDown() {
         fs.collection("users").get().addOnSuccessListener(snap -> {
             for (DocumentSnapshot d : snap) {
                 try {
                     User u = new User(d.getString("fullName"), d.getString("username"), "", d.getString("userType"));
-                    u.setId(d.getLong("id").intValue());
+                    long id = d.getLong("id").intValue();
+                    u.setId((int)id);
                     if (d.contains("photoUrl")) {
                         u.setPhotoUrl(d.getString("photoUrl"));
                     }
-                    db.userDao().insert(u);
+                    
+                    if ("Doctor".equals(u.getUserType())) {
+                        fs.collection("doctors").document(String.valueOf(id)).get()
+                            .addOnSuccessListener(doctorDoc -> {
+                                if (doctorDoc.exists()) {
+                                    u.setSpecialty(doctorDoc.getString("specialty"));
+                                    u.setPhone(doctorDoc.getString("phone"));
+                                }
+                                saveUserAndCallback(u, null);
+                            })
+                            .addOnFailureListener(e -> saveUserAndCallback(u, null));
+                    } else if ("Paciente".equals(u.getUserType())) {
+                        fs.collection("patients").whereEqualTo("userId", id).limit(1).get()
+                            .addOnSuccessListener(patientDocs -> {
+                                if (!patientDocs.isEmpty()) {
+                                    DocumentSnapshot patientDoc = patientDocs.getDocuments().get(0);
+                                    u.setPhone(patientDoc.getString("phone"));
+                                }
+                                saveUserAndCallback(u, null);
+                            })
+                            .addOnFailureListener(e -> saveUserAndCallback(u, null));
+                    } else {
+                        saveUserAndCallback(u, null);
+                    }
+
                 } catch (Exception e) {
                     Log.e(TAG, "Error mapping user", e);
                 }
@@ -165,7 +250,7 @@ public class FirebaseSyncRepository {
         data.put("allergies", r.getAllergies());
         data.put("notes", r.getNotes());
         fs.collection("medical_records").document(String.valueOf(r.getId())).set(data);
-    }
+    } 
 
     public void deleteRecord(int id) {
         fs.collection("medical_records").document(String.valueOf(id)).delete()

@@ -73,7 +73,7 @@ public class RegisterActivity extends AppCompatActivity {
 
     private void registerUser() {
         String fullName = edtFullName.getText().toString().trim();
-        String email = edtUser.getText().toString().trim();
+        String email = edtUser.getText().toString().trim().toLowerCase();
         String password = edtPass.getText().toString().trim();
         String phone = edtPhone.getText().toString().trim();
         String specialty = edtSpecialty.getText().toString().trim();
@@ -114,6 +114,10 @@ public class RegisterActivity extends AppCompatActivity {
 
                         User user = new User(fullName, email, "", selectedType, firebaseUid);
                         user.setPhotoUrl("");
+                        user.setPhone(phone);
+                        if ("Doctor".equalsIgnoreCase(selectedType)) {
+                            user.setSpecialty(specialty);
+                        }
 
                         long userId = db.userDao().insert(user);
                         user.setId((int) userId);
@@ -125,6 +129,7 @@ public class RegisterActivity extends AppCompatActivity {
                             try {
                                 DoctorRepository doctorRepo = new DoctorRepository(this);
                                 Doctor doctor = new Doctor(fullName, specialty, email, phone);
+                                doctor.setId(user.getId()); // Match Doctor ID with User ID
                                 doctorRepo.insert(doctor); 
                                 syncRepo.upsertDoctor(doctor); // Sincronización explícita
                             } catch (Exception e) {

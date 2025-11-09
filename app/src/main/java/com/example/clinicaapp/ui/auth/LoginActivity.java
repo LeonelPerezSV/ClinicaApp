@@ -12,6 +12,7 @@ import com.example.clinicaapp.MainActivity;
 import com.example.clinicaapp.R;
 import com.example.clinicaapp.data.db.AppDatabase;
 import com.example.clinicaapp.data.entities.User;
+import com.example.clinicaapp.data.repo.FirebaseSyncRepository;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
@@ -27,6 +28,7 @@ public class LoginActivity extends AppCompatActivity {
     private String selectedUserType = "Paciente";
     private AppDatabase db;
     private FirebaseAuth mAuth;
+    private FirebaseSyncRepository syncRepo;
 
     // Validaciones
     private static final Pattern EMAIL_PATTERN =
@@ -45,6 +47,8 @@ public class LoginActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         mAuth = FirebaseAuth.getInstance();
+        syncRepo = new FirebaseSyncRepository(this);
+
         SharedPreferences session = getSharedPreferences("session", MODE_PRIVATE);
         if (session.getBoolean("logged_in", false)) {
             startActivity(new Intent(this, MainActivity.class));
@@ -90,7 +94,7 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void handleLogin() {
-        String username = edtUser.getText().toString().trim();
+        String username = edtUser.getText().toString().trim().toLowerCase();
         String password = edtPass.getText().toString().trim();
 
         // Validaciones
@@ -106,31 +110,39 @@ public class LoginActivity extends AppCompatActivity {
         mAuth.signInWithEmailAndPassword(username, password)
                 .addOnCompleteListener(this, task -> {
                     if (task.isSuccessful()) {
-                        // Sign in success
                         Log.d("LoginActivity", "signInWithEmail:success");
                         FirebaseUser firebaseUser = mAuth.getCurrentUser();
-                        User user = db.userDao().findByUsername(firebaseUser.getEmail());
-                        onLoginSuccess(user, password);
+                        // Sincronizar los datos del usuario desde Firestore a la base de datos local
+                        syncRepo.pullUserByEmail(firebaseUser.getEmail(), user -> {
+                            if (user != null) {
+                                runOnUiThread(() -> onLoginSuccess(user, password));
+                            } else {
+                                // El usuario se autenticó en Firebase, pero no se encontraron sus datos en Firestore.
+                                runOnUiThread(() -> {
+                                    Toast.makeText(LoginActivity.this, "No se encontraron los datos del perfil de usuario.", Toast.LENGTH_LONG).show();
+                                    mAuth.signOut(); // Cerramos la sesión de Firebase para evitar un estado inconsistente
+                                });
+                            }
+                        });
                     } else {
-                        // If sign in fails, try local login
                         Log.w("LoginActivity", "signInWithEmail:failure", task.getException());
+                        // Si falla la autenticación de Firebase, intentamos el login local como último recurso.
                         tryLocalLogin(username, password);
                     }
                 });
     }
 
     private void tryLocalLogin(String username, String password) {
-        try {
+        new Thread(() -> {
             User user = db.userDao().login(username, password);
-            if (user == null) {
-                Toast.makeText(this, "Usuario o contraseña incorrectos", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            onLoginSuccess(user, password);
-        } catch (Exception e) {
-            Toast.makeText(this, "Error al iniciar sesión: " + e.getMessage(), Toast.LENGTH_LONG).show();
-            e.printStackTrace();
-        }
+            runOnUiThread(() -> {
+                if (user == null) {
+                    Toast.makeText(this, "Usuario o contraseña incorrectos", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                onLoginSuccess(user, password);
+            });
+        }).start();
     }
 
     private void onLoginSuccess(User user, String password) {
@@ -138,25 +150,35 @@ public class LoginActivity extends AppCompatActivity {
         SharedPreferences session = getSharedPreferences("session", MODE_PRIVATE);
         session.edit().putBoolean("logged_in", true).apply();
 
+        // El objeto User ya está completo, no es necesario volver a consultarlo.
         SharedPreferences prefs = getSharedPreferences("ClinicaAppPrefs", MODE_PRIVATE);
-        prefs.edit()
-                .putString("user_type", user.getUserType() == null ? "Paciente" : user.getUserType())
-                .putString("user_name", user.getFullName() == null ? user.getUsername() : user.getFullName())
-                .putLong("user_id", user.getId())
-                .apply();
+        SharedPreferences.Editor editor = prefs.edit();
+
+        editor.putString("user_type", user.getUserType() == null ? "Paciente" : user.getUserType());
+        editor.putString("user_name", user.getFullName() == null ? user.getUsername() : user.getFullName());
+        editor.putString("user_email", user.getUsername());
+        editor.putLong("user_id", user.getId());
+        editor.putString("user_phone", user.getPhone());
+
+        if ("Doctor".equals(user.getUserType())) {
+            editor.putString("user_specialty", user.getSpecialty());
+        }
+
+        if (user.getPhotoUrl() != null) {
+            editor.putString("user_photo_url", user.getPhotoUrl());
+        }
 
         // Recordarme
-        SharedPreferences.Editor e = prefs.edit();
         if (cbRemember.isChecked()) {
-            e.putBoolean("remember_me", true);
-            e.putString("remember_user", user.getUsername());
-            e.putString("remember_pass", password);
+            editor.putBoolean("remember_me", true);
+            editor.putString("remember_user", user.getUsername());
+            editor.putString("remember_pass", password);
         } else {
-            e.remove("remember_me");
-            e.remove("remember_user");
-            e.remove("remember_pass");
+            editor.remove("remember_me");
+            editor.remove("remember_user");
+            editor.remove("remember_pass");
         }
-        e.apply();
+        editor.apply();
 
         startActivity(new Intent(this, MainActivity.class));
         finish();

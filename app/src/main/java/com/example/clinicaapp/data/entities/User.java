@@ -17,6 +17,8 @@ public class User {
     private String role;     // admin, doctor, patient
     private String photoUrl; // URL de la foto de perfil
     private String firebaseUid; // UID de Firebase
+    private String phone;
+    private String specialty;
 
     // Constructor por defecto requerido por Room
     public User() {
@@ -64,4 +66,10 @@ public class User {
 
     public String getFirebaseUid() { return firebaseUid; }
     public void setFirebaseUid(String firebaseUid) { this.firebaseUid = firebaseUid; }
+
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
+
+    public String getSpecialty() { return specialty; }
+    public void setSpecialty(String specialty) { this.specialty = specialty; }
 }
