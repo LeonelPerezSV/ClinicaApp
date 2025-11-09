@@ -20,7 +20,8 @@
 
     <EditText
         android:id="@+id/edtUser"
-        android:hint="Correo eléctrinico"
+        android:hint="Correo electrónico"
+        android:inputType="textEmailAddress"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"/>
 
@@ -28,6 +29,20 @@
         android:id="@+id/edtPass"
         android:hint="Contraseña"
         android:inputType="textPassword"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <EditText
+        android:id="@+id/edtPhone"
+        android:hint="Número de celular"
+        android:inputType="phone"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <EditText
+        android:id="@+id/edtSpecialty"
+        android:hint="Especialidad"
+        android:visibility="gone"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"/>
 

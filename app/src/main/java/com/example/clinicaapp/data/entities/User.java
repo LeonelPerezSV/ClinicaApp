@@ -14,15 +14,15 @@ public class User {
     private String username;
     private String password;
     private String userType; // Paciente o Doctor
-    private String role;     // admin, doctor, patient (si lo usas luego)
+    private String role;     // admin, doctor, patient
     private String photoUrl; // URL de la foto de perfil
     private String firebaseUid; // UID de Firebase
 
-    // --- Constructor por defecto requerido por Room ---\
+    // Constructor por defecto requerido por Room
     public User() {
     }
 
-    // --- Constructor completo (para registrar usuarios manualmente) ---\
+    // Constructor completo para registrar usuarios manualmente
     @Ignore
     public User(String fullName, String username, String password, String userType) {
         this.fullName = fullName;
@@ -40,7 +40,7 @@ public class User {
         this.firebaseUid = firebaseUid;
     }
 
-    // --- Getters y Setters ---\
+    // Getters y Setters
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
 

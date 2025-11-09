@@ -7,8 +7,12 @@ import android.widget.*;
 import androidx.appcompat.app.AppCompatActivity;
 import com.example.clinicaapp.R;
 import com.example.clinicaapp.data.db.AppDatabase;
+import com.example.clinicaapp.data.entities.Doctor;
+import com.example.clinicaapp.data.entities.Patient;
 import com.example.clinicaapp.data.entities.User;
+import com.example.clinicaapp.data.repo.DoctorRepository;
 import com.example.clinicaapp.data.repo.FirebaseSyncRepository;
+import com.example.clinicaapp.data.repo.PatientRepository;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
@@ -16,7 +20,7 @@ import java.util.regex.Pattern;
 
 public class RegisterActivity extends AppCompatActivity {
 
-    private EditText edtFullName, edtUser, edtPass;
+    private EditText edtFullName, edtUser, edtPass, edtPhone, edtSpecialty;
     private Spinner spinnerType;
     private Button btnRegister;
     private String selectedType = "Paciente";
@@ -38,6 +42,8 @@ public class RegisterActivity extends AppCompatActivity {
         edtFullName = findViewById(R.id.edtFullName);
         edtUser = findViewById(R.id.edtUser);
         edtPass = findViewById(R.id.edtPass);
+        edtPhone = findViewById(R.id.edtPhone);
+        edtSpecialty = findViewById(R.id.edtSpecialty);
         spinnerType = findViewById(R.id.spinnerUserType);
         btnRegister = findViewById(R.id.btnRegister);
         db = AppDatabase.getInstance(this);
@@ -50,8 +56,16 @@ public class RegisterActivity extends AppCompatActivity {
         spinnerType.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 selectedType = parent.getItemAtPosition(position).toString();
+                if ("Doctor".equalsIgnoreCase(selectedType)) {
+                    edtSpecialty.setVisibility(View.VISIBLE);
+                } else {
+                    edtSpecialty.setVisibility(View.GONE);
+                }
             }
-            @Override public void onNothingSelected(AdapterView<?> parent) { selectedType = "Paciente"; }
+            @Override public void onNothingSelected(AdapterView<?> parent) { 
+                selectedType = "Paciente"; 
+                edtSpecialty.setVisibility(View.GONE);
+            }
         });
 
         btnRegister.setOnClickListener(v -> registerUser());
@@ -61,6 +75,8 @@ public class RegisterActivity extends AppCompatActivity {
         String fullName = edtFullName.getText().toString().trim();
         String email = edtUser.getText().toString().trim();
         String password = edtPass.getText().toString().trim();
+        String phone = edtPhone.getText().toString().trim();
+        String specialty = edtSpecialty.getText().toString().trim();
 
         // Validaciones
         if (fullName.length() < 7) {
@@ -75,6 +91,14 @@ public class RegisterActivity extends AppCompatActivity {
             Toast.makeText(this, "La contraseña debe tener mínimo 8 caracteres alfanuméricos.", Toast.LENGTH_LONG).show();
             return;
         }
+        if (phone.isEmpty()) {
+            Toast.makeText(this, "El número de celular es obligatorio.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if ("Doctor".equalsIgnoreCase(selectedType) && specialty.isEmpty()) {
+            Toast.makeText(this, "La especialidad es obligatoria para los doctores.", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
         User existing = db.userDao().findByUsername(email);
         if (existing != null) {
@@ -85,51 +109,39 @@ public class RegisterActivity extends AppCompatActivity {
         mAuth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this, task -> {
                     if (task.isSuccessful()) {
-                        // Sign in success, update UI with the signed-in user's information
-                        Log.d("RegisterActivity", "createUserWithEmail:success");
                         FirebaseUser firebaseUser = mAuth.getCurrentUser();
                         String firebaseUid = firebaseUser.getUid();
 
-                        // Crear una nueva instancia de User
                         User user = new User(fullName, email, "", selectedType, firebaseUid);
-
-                        // Añadir una URL de foto de perfil vacía por defecto
                         user.setPhotoUrl("");
 
-                        // Insertar el usuario en la base de datos local (Room) y obtener su ID
                         long userId = db.userDao().insert(user);
                         user.setId((int) userId);
 
-                        // Sincronizar el nuevo usuario con Firestore.
                         FirebaseSyncRepository syncRepo = new FirebaseSyncRepository(this);
                         syncRepo.syncUserToFirestore(user);
 
-                        // Crear perfil automático
                         if ("Doctor".equalsIgnoreCase(selectedType)) {
                             try {
-                                com.example.clinicaapp.data.repo.DoctorRepository doctorRepo =
-                                        new com.example.clinicaapp.data.repo.DoctorRepository(this);
-                                com.example.clinicaapp.data.entities.Doctor doctor =
-                                        new com.example.clinicaapp.data.entities.Doctor(fullName, "General", email, "0000-0000");
-                                doctorRepo.insert(doctor);
+                                DoctorRepository doctorRepo = new DoctorRepository(this);
+                                Doctor doctor = new Doctor(fullName, specialty, email, phone);
+                                doctorRepo.insert(doctor); 
+                                syncRepo.upsertDoctor(doctor); // Sincronización explícita
                             } catch (Exception e) {
                                 e.printStackTrace();
                                 Toast.makeText(this, "Error creando perfil de doctor", Toast.LENGTH_SHORT).show();
                             }
                         } else {
                             try {
-                                com.example.clinicaapp.data.repo.PatientRepository patientRepo =
-                                        new com.example.clinicaapp.data.repo.PatientRepository(this);
+                                PatientRepository patientRepo = new PatientRepository(this);
                                 String[] parts = fullName.split(" ", 2);
                                 String first = parts.length > 0 ? parts[0] : fullName;
                                 String last = parts.length > 1 ? parts[1] : "";
-                                com.example.clinicaapp.data.entities.Patient p =
-                                        new com.example.clinicaapp.data.entities.Patient(first, last, email, "0000-0000", user.getId());
-                                patientRepo.insert(p);
+                                Patient p = new Patient(first, last, email, phone, user.getId());
+                                patientRepo.insert(p); // Este método ya sincroniza
 
                                 new android.os.Handler().postDelayed(() -> {
-                                    com.example.clinicaapp.data.entities.Patient lastPatient =
-                                            db.patientDao().getAllPatientsList().get(db.patientDao().getAllPatientsList().size() - 1);
+                                    Patient lastPatient = db.patientDao().getAllPatientsList().get(db.patientDao().getAllPatientsList().size() - 1);
                                     if (lastPatient != null) {
                                         com.example.clinicaapp.data.repo.MedicalRecordRepository recordRepo =
                                                 new com.example.clinicaapp.data.repo.MedicalRecordRepository(this);
@@ -150,10 +162,9 @@ public class RegisterActivity extends AppCompatActivity {
                         Toast.makeText(this, "Usuario registrado correctamente", Toast.LENGTH_SHORT).show();
                         finish();
                     } else {
-                        // If sign in fails, display a message to the user.
                         Log.w("RegisterActivity", "createUserWithEmail:failure", task.getException());
-                        Toast.makeText(RegisterActivity.this, "Authentication failed.",
-                                Toast.LENGTH_SHORT).show();
+                        Toast.makeText(RegisterActivity.this, "Authentication failed: " + task.getException().getMessage(),
+                                Toast.LENGTH_LONG).show();
                     }
                 });
     }

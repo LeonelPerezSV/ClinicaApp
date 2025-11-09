@@ -69,6 +69,20 @@ public class FirebaseSyncRepository {
     }
 
     // =============================================================
+    // - DOCTORS
+    // =============================================================
+    public void upsertDoctor(Doctor d) {
+        if (d == null) return;
+        Map<String, Object> data = new HashMap<>();
+        data.put("id", d.getId());
+        data.put("name", d.getName());
+        data.put("specialty", d.getSpecialty());
+        data.put("email", d.getEmail());
+        data.put("phone", d.getPhone());
+        fs.collection("doctors").document(String.valueOf(d.getId())).set(data);
+    }
+
+    // =============================================================
     // - PATIENTS
     // =============================================================
     public void upsertPatient(Patient p) {
