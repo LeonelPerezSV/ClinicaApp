@@ -1,10 +1,13 @@
 package com.example.clinicaapp.ui.map;
 
 import android.Manifest;
+import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.Fragment;
 
@@ -19,8 +22,10 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.UiSettings;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 public class ClinicMapFragment extends Fragment implements OnMapReadyCallback {
 
@@ -35,7 +40,12 @@ public class ClinicMapFragment extends Fragment implements OnMapReadyCallback {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_clinic_map, container, false);
+        return inflater.inflate(R.layout.fragment_clinic_map, container, false);
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
 
         locationClient = LocationServices.getFusedLocationProviderClient(requireContext());
 
@@ -49,12 +59,47 @@ public class ClinicMapFragment extends Fragment implements OnMapReadyCallback {
         }
 
         mapFragment.getMapAsync(this);
-        return view;
+
+        FloatingActionButton fabMapType = view.findViewById(R.id.fab_map_type);
+        fabMapType.setOnClickListener(v -> showMapTypeDialog());
+    }
+
+    private void showMapTypeDialog() {
+        final String[] mapTypes = {"Normal", "Satélite", "Híbrido", "Terreno"};
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
+        builder.setTitle("Seleccionar tipo de mapa");
+        builder.setItems(mapTypes, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                switch (which) {
+                    case 0:
+                        map.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+                        break;
+                    case 1:
+                        map.setMapType(GoogleMap.MAP_TYPE_SATELLITE);
+                        break;
+                    case 2:
+                        map.setMapType(GoogleMap.MAP_TYPE_HYBRID);
+                        break;
+                    case 3:
+                        map.setMapType(GoogleMap.MAP_TYPE_TERRAIN);
+                        break;
+                }
+            }
+        });
+        builder.show();
     }
 
     @Override
     public void onMapReady(@NonNull GoogleMap googleMap) {
         map = googleMap;
+
+        // 🔹 Habilitar controles de UI
+        UiSettings uiSettings = map.getUiSettings();
+        uiSettings.setZoomControlsEnabled(true);
+        uiSettings.setCompassEnabled(true);
+        uiSettings.setMapToolbarEnabled(true);
 
         // 🔹 Agregar marcador en la clínica
         map.addMarker(new MarkerOptions()

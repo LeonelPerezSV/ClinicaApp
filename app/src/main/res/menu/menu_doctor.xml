@@ -11,6 +11,6 @@
 
     <group android:id="@+id/group_common">
         <item android:id="@+id/nav_settings" android:title="Configuración" app:icon="@drawable/ic_settings"/>
-        <item android:id="@+id/nav_logout" android:title="Cerrar sesión" app:icon="@drawable/ic_logout" android:visible="false"/>
+        <item android:id="@+id/nav_logout" android:title="Cerrar sesión" app:icon="@drawable/ic_logout"/>
     </group>
 </menu>
