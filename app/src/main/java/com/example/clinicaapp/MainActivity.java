@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;           // <— IMPORTA View
 import android.widget.ImageView;
 import android.widget.TextView;    // <— IMPORTA TextView
@@ -41,23 +42,11 @@ public class MainActivity extends AppCompatActivity {
 
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-        // OJO: el include en activity_main.xml tiene id appBarMain => binding.appBarMain
         setSupportActionBar(binding.appBarMain.toolbar);
-
-        // FAB
-        binding.appBarMain.fab.setOnClickListener(view ->
-                Snackbar.make(view, "Acción rápida disponible", Snackbar.LENGTH_LONG)
-                        .setAction("Ok", null)
-                        .setAnchorView(R.id.fab)
-                        .show()
-        );
 
         DrawerLayout drawer = binding.drawerLayout;
         NavigationView navView = binding.navView;
 
-
-
-        // Top-level destinations: usa los IDs que EXISTEN en tu nav_graph (según tu proyecto en español)
         mAppBarConfiguration = new AppBarConfiguration.Builder(
                 R.id.nav_home,
                 R.id.nav_citas,
@@ -81,11 +70,6 @@ public class MainActivity extends AppCompatActivity {
         navUserName.setText(userName);
         navUserRole.setText(userType);
 
-// (Opcional futuro) Cargar imagen real si existe ruta guardada
-// String imageUri = prefs.getString("user_image", null);
-// if (imageUri != null) navUserImage.setImageURI(Uri.parse(imageUri));
-
-
         // Mostrar/ocultar grupos de menú por rol
         Menu menu = navView.getMenu();
         if ("Paciente".equals(userType)) {
@@ -98,25 +82,16 @@ public class MainActivity extends AppCompatActivity {
         menu.setGroupVisible(R.id.group_common, true);
         menu.setGroupVisible(R.id.group_settings, true);
 
-        // Cerrar sesión y navegación segura
-        navView.setNavigationItemSelectedListener(item -> {
-            int id = item.getItemId();
-            if (id == R.id.nav_logout) {
-                getSharedPreferences("session", MODE_PRIVATE).edit().clear().apply();
-                prefs.edit().clear().apply();
+        // Manejar el clic de cerrar sesión por separado
+        menu.findItem(R.id.nav_logout).setOnMenuItemClickListener(menuItem -> {
+            // Limpiar datos de sesión
+            getSharedPreferences("session", MODE_PRIVATE).edit().clear().apply();
+            prefs.edit().clear().apply();
 
-                startActivity(new Intent(MainActivity.this, LoginActivity.class));
-                finish();
-                return true;
-            }
-
-            // ✅ Usar el controlador de navegación real
-            NavController navController = Navigation.findNavController(MainActivity.this, R.id.nav_host_fragment_content_main);
-            boolean handled = NavigationUI.onNavDestinationSelected(item, navController);
-            if (handled) {
-                drawer.closeDrawers();
-            }
-            return handled;
+            // Redirigir a LoginActivity
+            startActivity(new Intent(MainActivity.this, LoginActivity.class));
+            finish();
+            return true;
         });
 
         new FirebaseSyncRepository(this).syncFromFirestore();
@@ -135,8 +110,6 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
     }
-
-
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {

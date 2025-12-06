@@ -67,10 +67,9 @@
             android:icon="@android:drawable/ic_menu_preferences"
             android:title="Configuración" />
         <item
-            android:id="@+id/btnClearSession"
+            android:id="@+id/nav_logout"
             android:icon="@android:drawable/ic_lock_power_off"
-            android:title="Cerrar sesión"
-            android:visible="false"/>
+            android:title="Cerrar sesión" />
     </group>
 
 </menu>
