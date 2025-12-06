@@ -13,9 +13,14 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.example.clinicaapp.data.db.AppDatabase;
 import com.example.clinicaapp.data.dao.AppointmentDao;
+import com.example.clinicaapp.data.dao.DoctorDao;
+import com.example.clinicaapp.data.dao.PatientDao;
 import com.example.clinicaapp.data.entities.Appointment;
+import com.example.clinicaapp.data.entities.Doctor;
+import com.example.clinicaapp.data.entities.Patient;
 import com.example.clinicaapp.databinding.FragmentHomeBinding;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class HomeFragment extends Fragment {
@@ -29,16 +34,14 @@ public class HomeFragment extends Fragment {
         binding = FragmentHomeBinding.inflate(inflater, container, false);
         View root = binding.getRoot();
 
-        // Obtener datos del usuario logueado
         SharedPreferences prefs = requireActivity().getSharedPreferences("ClinicaAppPrefs", Context.MODE_PRIVATE);
         String userName = prefs.getString("user_name", "Usuario");
         String userType = prefs.getString("user_type", "Desconocido");
-        long userId = prefs.getLong("user_id", 0L);
+        int userId = (int) prefs.getLong("user_id", 0L);
 
         binding.tvWelcome.setText("Bienvenido a ClínicaApp, " + userName);
         binding.tvUserType.setText("Tipo de usuario: " + userType);
 
-        // Mostrar layout según tipo de usuario
         if ("Paciente".equalsIgnoreCase(userType)) {
             binding.layoutPaciente.setVisibility(View.VISIBLE);
             binding.layoutDoctor.setVisibility(View.GONE);
@@ -46,38 +49,52 @@ public class HomeFragment extends Fragment {
         } else if ("Doctor".equalsIgnoreCase(userType)) {
             binding.layoutDoctor.setVisibility(View.VISIBLE);
             binding.layoutPaciente.setVisibility(View.GONE);
-            mostrarCitasDoctor(userId);
+            mostrarTodasLasCitas();
         }
 
         return root;
     }
 
-    private void mostrarCitaPaciente(long userId) {
+    private void mostrarCitaPaciente(int userId) {
         new Thread(() -> {
             AppDatabase db = AppDatabase.getInstance(requireContext());
-            AppointmentDao dao = db.appointmentDao();
-            Appointment cita = dao.findNextAppointmentForPatient(userId);
-            requireActivity().runOnUiThread(() -> {
+            Patient patient = db.patientDao().findByUserId(userId);
+
+            if (patient != null) {
+                Appointment cita = db.appointmentDao().findNextAppointmentForPatient(patient.getId());
+                final String infoText;
                 if (cita != null) {
-                    String info = "📅 " + cita.getDate() + " a las " + cita.getTime() +
-                            "\n👨‍⚕️ Doctor ID: " + cita.getDoctorId();
-                    binding.tvCitaPaciente.setText(info);
+                    Doctor doctor = db.doctorDao().findById(cita.getDoctorId());
+                    String doctorName = (doctor != null) ? doctor.getName() : "ID: " + cita.getDoctorId();
+                    infoText = "📅 " + cita.getDate() + " a las " + cita.getTime() +
+                            "\n👨‍⚕️ Doctor: " + doctorName;
                 } else {
-                    binding.tvCitaPaciente.setText("No tienes citas programadas.");
+                    infoText = "No tienes citas programadas.";
                 }
-            });
+                requireActivity().runOnUiThread(() -> binding.tvCitaPaciente.setText(infoText));
+            } else {
+                requireActivity().runOnUiThread(() -> binding.tvCitaPaciente.setText("No se encontró perfil de paciente."));
+            }
         }).start();
     }
 
-    private void mostrarCitasDoctor(long userId) {
+    private void mostrarTodasLasCitas() {
         new Thread(() -> {
             AppDatabase db = AppDatabase.getInstance(requireContext());
-            AppointmentDao dao = db.appointmentDao();
-            List<Appointment> citasHoy = dao.findTodayAppointmentsForDoctor(userId);
+            List<Appointment> todasLasCitas = db.appointmentDao().getAllSync();
+            List<Patient> todosLosPacientes = db.patientDao().getAllPatientsList();
+            List<Doctor> todosLosDoctores = db.doctorDao().getAllDoctorsList();
 
             requireActivity().runOnUiThread(() -> {
-                binding.rvCitasDoctor.setLayoutManager(new LinearLayoutManager(requireContext()));
-                binding.rvCitasDoctor.setAdapter(new HomeCitasDoctorAdapter(citasHoy));
+                if (todasLasCitas.isEmpty()) {
+                    binding.tvDoctorEmptyState.setVisibility(View.VISIBLE);
+                    binding.rvCitasDoctor.setVisibility(View.GONE);
+                } else {
+                    binding.tvDoctorEmptyState.setVisibility(View.GONE);
+                    binding.rvCitasDoctor.setVisibility(View.VISIBLE);
+                    binding.rvCitasDoctor.setLayoutManager(new LinearLayoutManager(requireContext()));
+                    binding.rvCitasDoctor.setAdapter(new HomeCitasDoctorAdapter(todasLasCitas, todosLosPacientes, todosLosDoctores));
+                }
             });
         }).start();
     }

@@ -1,88 +1,99 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:padding="16dp">
-
-
+    android:fillViewport="true"
+    android:padding="16dp"
+    android:background="@color/backgroundLight"
+    tools:context=".ui.records.MedicalRecordFormFragment">
 
     <LinearLayout
-
-
         android:orientation="vertical"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:paddingBottom="32dp">
 
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/bannerWarning"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            app:cardBackgroundColor="#FFF9C4"
-            app:cardCornerRadius="8dp"
-            app:cardElevation="2dp">
-
-            <TextView
-                android:id="@+id/txtBannerMessage"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="⚠️ Este expediente pertenece a un paciente y no puede eliminarse directamente."
-                android:textColor="#795548"
-                android:textStyle="bold"
-                android:padding="12dp"
-                android:textSize="14sp"/>
-        </com.google.android.material.card.MaterialCardView>
-
-
+        <!--TextView para mostrar el nombre del paciente -->
         <TextView
             android:id="@+id/txtPatientName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?attr/textAppearanceHeadline6"
+            android:layout_marginBottom="16dp"
+            tools:text="Expediente de: Juan Pérez" />
+
+        <!-- Resumen -->
+        <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Paciente: "
-            android:textStyle="bold"
-            android:textColor="#2E7D32"
-            android:paddingBottom="4dp"
-            android:textSize="16sp"/>
+            android:hint="Resumen del Diagnóstico"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
-        <EditText
-            android:id="@+id/inputPatientId"
-            android:hint="ID del Paciente"
-            android:inputType="number"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"/>
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/inputSummary"
+                android:inputType="textCapSentences"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+        </com.google.android.material.textfield.TextInputLayout>
 
-        <EditText
-            android:id="@+id/inputSummary"
-            android:hint="Resumen"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"/>
-
-        <EditText
-            android:id="@+id/inputAllergies"
-            android:hint="Alergias"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"/>
-
-        <EditText
-            android:id="@+id/inputNotes"
-            android:hint="Notas Médicas"
-            android:inputType="textMultiLine"
-            android:minLines="3"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"/>
-
-        <Button
-            android:id="@+id/btnSave"
-            android:text="Guardar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"/>
-
-        <Button
-            android:id="@+id/btnCancel"
-            android:text="Cancelar"
+        <!-- Alergias -->
+        <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"/>
+            android:hint="Alergias Conocidas"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_marginTop="12dp">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/inputAllergies"
+                android:inputType="textMultiLine"
+                android:minLines="2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Notas -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Notas Médicas Adicionales"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_marginTop="12dp">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/inputNotes"
+                android:inputType="textMultiLine"
+                android:minLines="4"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Botones -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="24dp">
+
+            <Button
+                android:id="@+id/btnSave"
+                android:text="💾 Guardar Cambios"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:backgroundTint="?attr/colorPrimary"
+                android:textColor="?attr/colorOnPrimary"
+                android:textAllCaps="false" />
+
+            <Button
+                android:id="@+id/btnCancel"
+                android:text="Cancelar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                style="@style/Widget.MaterialComponents.Button.TextButton" />
+
+        </LinearLayout>
+
     </LinearLayout>
 </ScrollView>

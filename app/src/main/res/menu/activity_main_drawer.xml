@@ -11,6 +11,11 @@
             android:title="Inicio" />
 
         <item
+            android:id="@+id/nav_profile"
+            android:icon="@drawable/ic_user_avatar"
+            android:title="Mi Perfil" />
+
+        <item
             android:id="@+id/nav_map"
             android:icon="@drawable/ic_map"
             android:title="Mapa de la Clínica" />
@@ -62,9 +67,10 @@
             android:icon="@android:drawable/ic_menu_preferences"
             android:title="Configuración" />
         <item
-            android:id="@+id/nav_logout"
+            android:id="@+id/btnClearSession"
             android:icon="@android:drawable/ic_lock_power_off"
-            android:title="Cerrar sesión" />
+            android:title="Cerrar sesión"
+            android:visible="false"/>
     </group>
 
 </menu>

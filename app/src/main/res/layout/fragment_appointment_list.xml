@@ -29,8 +29,8 @@
             android:padding="16dp" />
     </LinearLayout>
 
-    <!-- ❌ Quitar app:layout_anchor / app:layout_anchorGravity
-         ✅ Usar layout_gravity en un CoordinatorLayout -->
+    <!-- Quitar app:layout_anchor / app:layout_anchorGravity
+         Usar layout_gravity en un CoordinatorLayout -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabAdd"
         android:layout_width="wrap_content"

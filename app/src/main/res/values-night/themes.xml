@@ -5,7 +5,7 @@
     <style name="Theme.ClinicaApp" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="colorPrimary">@color/brandPrimary</item>
         <item name="colorPrimaryVariant">@color/brandPrimaryDark</item>
-        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorOnPrimary">@color/black</item>
         <item name="colorSecondary">@color/brandAccent</item>
         <item name="colorOnSecondary">@color/white</item>
         <item name="android:statusBarColor">@color/brandPrimaryDark</item>

@@ -1,23 +1,31 @@
 package com.example.clinicaapp.ui.auth;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.*;
 import androidx.appcompat.app.AppCompatActivity;
 import com.example.clinicaapp.R;
 import com.example.clinicaapp.data.db.AppDatabase;
+import com.example.clinicaapp.data.entities.Doctor;
+import com.example.clinicaapp.data.entities.Patient;
 import com.example.clinicaapp.data.entities.User;
 import com.example.clinicaapp.data.repo.FirebaseSyncRepository;
+import com.example.clinicaapp.data.repo.PatientRepository;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
+import java.util.List;
 import java.util.regex.Pattern;
 
 public class RegisterActivity extends AppCompatActivity {
 
-    private EditText edtFullName, edtUser, edtPass;
+    private EditText edtFullName, edtUser, edtPass, edtPhone, edtSpecialty;
     private Spinner spinnerType;
     private Button btnRegister;
     private String selectedType = "Paciente";
     private AppDatabase db;
+    private FirebaseAuth mAuth;
 
     private static final Pattern EMAIL_PATTERN =
             Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$");
@@ -29,9 +37,13 @@ public class RegisterActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_register);
 
+        mAuth = FirebaseAuth.getInstance();
+
         edtFullName = findViewById(R.id.edtFullName);
         edtUser = findViewById(R.id.edtUser);
         edtPass = findViewById(R.id.edtPass);
+        edtPhone = findViewById(R.id.edtPhone);
+        edtSpecialty = findViewById(R.id.edtSpecialty);
         spinnerType = findViewById(R.id.spinnerUserType);
         btnRegister = findViewById(R.id.btnRegister);
         db = AppDatabase.getInstance(this);
@@ -44,8 +56,16 @@ public class RegisterActivity extends AppCompatActivity {
         spinnerType.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 selectedType = parent.getItemAtPosition(position).toString();
+                if ("Doctor".equalsIgnoreCase(selectedType)) {
+                    edtSpecialty.setVisibility(View.VISIBLE);
+                } else {
+                    edtSpecialty.setVisibility(View.GONE);
+                }
             }
-            @Override public void onNothingSelected(AdapterView<?> parent) { selectedType = "Paciente"; }
+            @Override public void onNothingSelected(AdapterView<?> parent) { 
+                selectedType = "Paciente"; 
+                edtSpecialty.setVisibility(View.GONE);
+            }
         });
 
         btnRegister.setOnClickListener(v -> registerUser());
@@ -53,8 +73,10 @@ public class RegisterActivity extends AppCompatActivity {
 
     private void registerUser() {
         String fullName = edtFullName.getText().toString().trim();
-        String email = edtUser.getText().toString().trim();
+        String email = edtUser.getText().toString().trim().toLowerCase();
         String password = edtPass.getText().toString().trim();
+        String phone = edtPhone.getText().toString().trim();
+        String specialty = edtSpecialty.getText().toString().trim();
 
         // Validaciones
         if (fullName.length() < 7) {
@@ -69,6 +91,14 @@ public class RegisterActivity extends AppCompatActivity {
             Toast.makeText(this, "La contraseña debe tener mínimo 8 caracteres alfanuméricos.", Toast.LENGTH_LONG).show();
             return;
         }
+        if (phone.isEmpty()) {
+            Toast.makeText(this, "El número de celular es obligatorio.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if ("Doctor".equalsIgnoreCase(selectedType) && specialty.isEmpty()) {
+            Toast.makeText(this, "La especialidad es obligatoria para los doctores.", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
         User existing = db.userDao().findByUsername(email);
         if (existing != null) {
@@ -76,59 +106,73 @@ public class RegisterActivity extends AppCompatActivity {
             return;
         }
 
-        // Crear usuario
-        User user = new User(fullName, email, password, selectedType);
-        long userId = db.userDao().insert(user);
-        user.setId((int) userId);
+        mAuth.createUserWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) {
+                        FirebaseUser firebaseUser = mAuth.getCurrentUser();
+                        String firebaseUid = firebaseUser.getUid();
 
-        // Sincronizar con Firestore
-        FirebaseSyncRepository syncRepo = new FirebaseSyncRepository(this);
-        syncRepo.syncUserToFirestore(user);
+                        User user = new User(fullName, email, "", selectedType, firebaseUid);
+                        user.setPhotoUrl("");
+                        user.setPhone(phone);
+                        if ("Doctor".equalsIgnoreCase(selectedType)) {
+                            user.setSpecialty(specialty);
+                        }
 
-        // Crear perfil automático
-        if ("Doctor".equalsIgnoreCase(selectedType)) {
-            try {
-                com.example.clinicaapp.data.repo.DoctorRepository doctorRepo =
-                        new com.example.clinicaapp.data.repo.DoctorRepository(this);
-                com.example.clinicaapp.data.entities.Doctor doctor =
-                        new com.example.clinicaapp.data.entities.Doctor(fullName, "General", email, "0000-0000");
-                doctorRepo.insert(doctor);
-            } catch (Exception e) {
-                e.printStackTrace();
-                Toast.makeText(this, "Error creando perfil de doctor", Toast.LENGTH_SHORT).show();
-            }
-        } else {
-            try {
-                com.example.clinicaapp.data.repo.PatientRepository patientRepo =
-                        new com.example.clinicaapp.data.repo.PatientRepository(this);
-                String[] parts = fullName.split(" ", 2);
-                String first = parts.length > 0 ? parts[0] : fullName;
-                String last = parts.length > 1 ? parts[1] : "";
-                com.example.clinicaapp.data.entities.Patient p =
-                        new com.example.clinicaapp.data.entities.Patient(first, last, email, "0000-0000", user.getId());
-                patientRepo.insert(p);
+                        long userId = db.userDao().insert(user);
+                        user.setId((int) userId);
 
-                new android.os.Handler().postDelayed(() -> {
-                    com.example.clinicaapp.data.entities.Patient lastPatient =
-                            db.patientDao().getAllPatientsList().get(db.patientDao().getAllPatientsList().size() - 1);
-                    if (lastPatient != null) {
-                        com.example.clinicaapp.data.repo.MedicalRecordRepository recordRepo =
-                                new com.example.clinicaapp.data.repo.MedicalRecordRepository(this);
-                        com.example.clinicaapp.data.entities.MedicalRecord record =
-                                new com.example.clinicaapp.data.entities.MedicalRecord(
-                                        lastPatient.getId(),
-                                        "Sin diagnóstico inicial",
-                                        "Sin alergias registradas",
-                                        "Sin notas médicas");
-                        recordRepo.insert(record);
+                        FirebaseSyncRepository syncRepo = new FirebaseSyncRepository(this);
+                        syncRepo.syncUserToFirestore(user);
+
+                        if ("Doctor".equalsIgnoreCase(selectedType)) {
+                            new Thread(() -> {
+                                try {
+                                    Doctor doctor = new Doctor((int) userId, fullName, specialty, email, phone);
+                                    long doctorId = db.doctorDao().insert(doctor);
+                                    doctor.setId((int) doctorId);
+                                    syncRepo.upsertDoctor(doctor);
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                    runOnUiThread(() -> Toast.makeText(this, "Error creando perfil de doctor", Toast.LENGTH_SHORT).show());
+                                }
+                            }).start();
+                        } else {
+                            try {
+                                PatientRepository patientRepo = new PatientRepository(this);
+                                String[] parts = fullName.split(" ", 2);
+                                String first = parts.length > 0 ? parts[0] : fullName;
+                                String last = parts.length > 1 ? parts[1] : "";
+                                Patient p = new Patient(first, last, email, phone, user.getId());
+                                patientRepo.insert(p);
+
+                                new android.os.Handler().postDelayed(() -> {
+                                    List<Patient> allPatients = db.patientDao().getAllPatientsList();
+                                    if (!allPatients.isEmpty()) {
+                                        Patient lastPatient = allPatients.get(allPatients.size() - 1);
+                                        com.example.clinicaapp.data.repo.MedicalRecordRepository recordRepo =
+                                                new com.example.clinicaapp.data.repo.MedicalRecordRepository(this);
+                                        com.example.clinicaapp.data.entities.MedicalRecord record =
+                                                new com.example.clinicaapp.data.entities.MedicalRecord(
+                                                        lastPatient.getId(),
+                                                        "Sin diagnóstico inicial",
+                                                        "Sin alergias registradas",
+                                                        "Sin notas médicas");
+                                        recordRepo.insert(record);
+                                    }
+                                }, 400);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+
+                        Toast.makeText(this, "Usuario registrado correctamente", Toast.LENGTH_SHORT).show();
+                        finish();
+                    } else {
+                        Log.w("RegisterActivity", "createUserWithEmail:failure", task.getException());
+                        Toast.makeText(RegisterActivity.this, "Authentication failed: " + task.getException().getMessage(),
+                                Toast.LENGTH_LONG).show();
                     }
-                }, 400);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-
-        Toast.makeText(this, "Usuario registrado correctamente", Toast.LENGTH_SHORT).show();
-        finish();
+                });
     }
 }

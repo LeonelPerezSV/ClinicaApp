@@ -5,18 +5,18 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/clinicapp_logo_android"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:roundIcon="@drawable/clinicapp_logo_android"
         android:supportsRtl="true"
         android:theme="@style/Theme.ClinicaApp">
 
-        <!-- ✅ ESTA es la forma correcta -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyA0cmZOUa7ARok1BOG9Klw4nvYi-0F2LDs" />

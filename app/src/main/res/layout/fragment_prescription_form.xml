@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/scrollViewPrescriptionForm"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true"
@@ -10,33 +9,33 @@
     tools:context=".ui.prescriptions.PrescriptionFormFragment">
 
     <LinearLayout
-        android:id="@+id/layoutFormPrescription"
         android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:paddingBottom="32dp">
 
-        <!-- 🧑 Paciente -->
-        <TextView
-            android:text="Seleccionar Paciente"
-            android:textStyle="bold"
+        <!-- Paciente -->
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp" />
+            android:layout_marginTop="8dp"
+            android:hint="Seleccionar Paciente">
 
-        <Spinner
-            android:id="@+id/spinnerPatient"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@drawable/spinner_background"
-            android:padding="8dp" />
+            <AutoCompleteTextView
+                android:id="@+id/spinnerPatient"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="none" />
 
-        <!-- 📅 Fecha -->
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Fecha -->
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Fecha (YYYY-MM-DD)"
-            style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox.Dense"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_marginTop="12dp">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -48,27 +47,27 @@
                 android:layout_height="wrap_content" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- 💊 Medicamento -->
+        <!-- Medicamento -->
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Medicamento"
-            style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox.Dense"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_marginTop="12dp">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/inputMedication"
-                android:inputType="text"
+                android:inputType="textCapWords"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- 💧 Dosis -->
+        <!-- Dosis -->
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Dosis / Frecuencia"
-            style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox.Dense"
+            android:hint="Dosis (ej. 1 tableta cada 8 horas)"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_marginTop="12dp">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -78,12 +77,12 @@
                 android:layout_height="wrap_content" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- 🗒️ Notas -->
+        <!-- Notas -->
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Notas Adicionales"
-            style="@style/Widget.MaterialComponents.TextInputLayout.FilledBox.Dense"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_marginTop="12dp">
 
             <com.google.android.material.textfield.TextInputEditText
@@ -94,7 +93,7 @@
                 android:layout_height="wrap_content" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- 🔘 Botones -->
+        <!-- Botones -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -106,18 +105,19 @@
                 android:text="💾 Guardar Receta"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:backgroundTint="@color/brandPrimary"
-                android:textColor="@color/white"
+                android:backgroundTint="?attr/colorPrimary"
+                android:textColor="?attr/colorOnPrimary"
                 android:textAllCaps="false" />
 
+            <!--Botón para exportar a PDF -->
             <Button
                 android:id="@+id/btnExportPdf"
                 android:text="🧾 Exportar Receta (PDF)"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:backgroundTint="@color/brandAccent"
-                android:textColor="@color/white"
+                android:backgroundTint="?attr/colorSecondary"
+                android:textColor="?attr/colorOnSecondary"
                 android:textAllCaps="false" />
 
             <Button
@@ -126,20 +126,22 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:backgroundTint="@color/errorColor"
-                android:textColor="@color/white"
-                android:textAllCaps="false"
-                android:visibility="gone" />
+                android:backgroundTint="?attr/colorError"
+                android:textColor="?attr/colorOnError"
+                android:textAllCaps="false"/>
 
+            <!-- Botón para cancelar -->
             <Button
                 android:id="@+id/btnCancel"
                 android:text="Cancelar"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:backgroundTint="?attr/colorSecondary"
+                android:textColor="?attr/colorOnError"
                 android:layout_marginTop="8dp"
-                android:backgroundTint="@color/textSecondary"
-                android:textColor="@color/white"
-                android:textAllCaps="false" />
+                style="@style/Widget.MaterialComponents.Button.TextButton" />
+
         </LinearLayout>
+
     </LinearLayout>
 </ScrollView>

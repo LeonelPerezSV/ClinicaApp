@@ -22,16 +22,27 @@ public class MedicalRecordRepository {
 
     public LiveData<List<MedicalRecord>> getAll() { return dao.getAll(); }
 
-    public LiveData<List<MedicalRecord>> getByPatient(int patientId) { return dao.getByPatient(patientId); }
-
     public LiveData<MedicalRecord> getById(int id) { return dao.getById(id); }
 
+    public LiveData<MedicalRecord> getRecordByPatientId(int patientId) {
+        return dao.getRecordByPatientId(patientId);
+    }
+
+    //Lógica de inserción para garantizar la consistencia de IDs.
+
     public void insert(MedicalRecord r) {
-        executor.execute(() -> { dao.insert(r); sync.upsertRecord(r); });
+        executor.execute(() -> {
+            long newId = dao.insert(r);
+            r.setId((int) newId);
+            sync.upsertRecord(r);
+        });
     }
 
     public void update(MedicalRecord r) {
-        executor.execute(() -> { dao.update(r); sync.upsertRecord(r); });
+        executor.execute(() -> {
+            dao.update(r);
+            sync.upsertRecord(r);
+        });
     }
 
     public void delete(MedicalRecord r) {
@@ -40,6 +51,16 @@ public class MedicalRecordRepository {
 
     public void deleteById(int id) {
         executor.execute(() -> { dao.deleteById(id); sync.deleteRecord(id); });
+    }
+
+    public void deleteByPatientId(int patientId) {
+        executor.execute(() -> {
+            List<MedicalRecord> recordsToDelete = dao.getAllSyncByPatient(patientId);
+            for (MedicalRecord rec : recordsToDelete) {
+                sync.deleteRecord(rec.getId());
+            }
+            dao.deleteByPatientId(patientId);
+        });
     }
 
     public void deleteAll() {

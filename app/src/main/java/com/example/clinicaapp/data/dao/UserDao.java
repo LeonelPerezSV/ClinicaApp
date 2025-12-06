@@ -15,7 +15,7 @@ import java.util.List;
 public interface UserDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    long insert(User user);  // 🔹 devuelve el ID generado
+    long insert(User user);  // Inserta un usuario y devuelve el ID generado
 
 
     @Update

@@ -7,6 +7,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.clinicaapp.MainActivity;
+import com.example.clinicaapp.R;
 import com.example.clinicaapp.ui.auth.LoginActivity;
 
 public class SplashActivity extends AppCompatActivity {
@@ -14,6 +15,7 @@ public class SplashActivity extends AppCompatActivity {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_splash);
 
         // Pequeño delay opcional para ver el logo
         getWindow().getDecorView().postDelayed(() -> {
@@ -23,6 +25,6 @@ public class SplashActivity extends AppCompatActivity {
             Intent next = new Intent(this, logged ? MainActivity.class : LoginActivity.class);
             startActivity(next);
             finish();
-        }, 300); // 0.3 segundos de transición
+        }, 2000); // 2 segundos de transición
     }
 }

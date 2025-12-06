@@ -6,9 +6,11 @@ import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 
-import com.example.clinicaapp.data.db.AppDatabase;
 import com.example.clinicaapp.data.entities.Patient;
+import com.example.clinicaapp.data.repo.AppointmentRepository;
+import com.example.clinicaapp.data.repo.MedicalRecordRepository;
 import com.example.clinicaapp.data.repo.PatientRepository;
+import com.example.clinicaapp.data.repo.PrescriptionRepository;
 
 import java.util.List;
 
@@ -31,6 +33,15 @@ public class PatientViewModel extends AndroidViewModel {
         return repository.getById(id);
     }
 
+    //Método para obtener el ID de paciente a partir del ID de usuario.
+     //Necesario para que un usuario de tipo 'Paciente' pueda ver su propia lista de citas.
+     //@param userId El ID del usuario logueado.
+     //@return Un LiveData que emitirá el ID del paciente correspondiente.
+
+    public LiveData<Integer> getPatientIdByUserId(int userId) {
+        return repository.getPatientIdByUserId(userId);
+    }
+
     public void insert(Patient patient) {
         repository.insert(patient);
     }
@@ -51,15 +62,19 @@ public class PatientViewModel extends AndroidViewModel {
         repository.deleteAll();
     }
 
-    // 🔹 Eliminar paciente con cascada (citas, recetas, expediente)
     public void deletePatientCascade(Patient patient) {
         new Thread(() -> {
-            AppDatabase db = AppDatabase.getInstance(getApplication());
+            AppointmentRepository appointmentRepo = new AppointmentRepository(getApplication());
+            PrescriptionRepository prescriptionRepo = new PrescriptionRepository(getApplication());
+            MedicalRecordRepository medicalRecordRepo = new MedicalRecordRepository(getApplication());
+
             int patientId = patient.getId();
-            db.prescriptionDao().deleteByPatientId(patientId);
-            db.appointmentDao().deleteByPatientId(patientId);
-            db.medicalRecordDao().deleteByPatientId(patientId);
-            db.patientDao().delete(patient);
+
+            appointmentRepo.deleteByPatientId(patientId);
+            prescriptionRepo.deleteByPatientId(patientId);
+            medicalRecordRepo.deleteByPatientId(patientId);
+
+            repository.delete(patient);
         }).start();
     }
 }

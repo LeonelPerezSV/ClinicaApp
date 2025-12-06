@@ -14,13 +14,17 @@ public class User {
     private String username;
     private String password;
     private String userType; // Paciente o Doctor
-    private String role;     // admin, doctor, patient (si lo usas luego)
+    private String role;     // admin, doctor, patient
+    private String photoUrl; // URL de la foto de perfil
+    private String firebaseUid; // UID de Firebase
+    private String phone;
+    private String specialty;
 
-    // --- Constructor por defecto requerido por Room ---
+    // Constructor por defecto requerido por Room
     public User() {
     }
 
-    // --- Constructor completo (para registrar usuarios manualmente) ---
+    // Constructor completo para registrar usuarios manualmente
     @Ignore
     public User(String fullName, String username, String password, String userType) {
         this.fullName = fullName;
@@ -29,7 +33,16 @@ public class User {
         this.userType = userType;
     }
 
-    // --- Getters y Setters ---
+    @Ignore
+    public User(String fullName, String username, String password, String userType, String firebaseUid) {
+        this.fullName = fullName;
+        this.username = username;
+        this.password = password;
+        this.userType = userType;
+        this.firebaseUid = firebaseUid;
+    }
+
+    // Getters y Setters
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
 
@@ -47,4 +60,16 @@ public class User {
 
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
+
+    public String getPhotoUrl() { return photoUrl; }
+    public void setPhotoUrl(String photoUrl) { this.photoUrl = photoUrl; }
+
+    public String getFirebaseUid() { return firebaseUid; }
+    public void setFirebaseUid(String firebaseUid) { this.firebaseUid = firebaseUid; }
+
+    public String getPhone() { return phone; }
+    public void setPhone(String phone) { this.phone = phone; }
+
+    public String getSpecialty() { return specialty; }
+    public void setSpecialty(String specialty) { this.specialty = specialty; }
 }

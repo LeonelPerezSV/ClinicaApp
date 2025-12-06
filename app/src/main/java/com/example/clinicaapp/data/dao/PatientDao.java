@@ -8,7 +8,6 @@ import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
 import androidx.room.Update;
 
-import com.example.clinicaapp.data.entities.MedicalRecord;
 import com.example.clinicaapp.data.entities.Patient;
 import com.example.clinicaapp.data.entities.User;
 
@@ -18,7 +17,7 @@ import java.util.List;
 public interface PatientDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    void insert(Patient patient);
+    long insert(Patient patient);
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertAll(List<Patient> patients);
@@ -51,8 +50,11 @@ public interface PatientDao {
     List<Patient> getAllPatientsList();
 
     @Query("SELECT id FROM patients WHERE userId = :userId LIMIT 1")
-    int getPatientIdByUserId(int userId);
+    LiveData<Integer> getPatientIdByUserId(int userId);
 
+    @Query("SELECT * FROM patients WHERE userId = :userId LIMIT 1")
+    Patient findByUserId(int userId);
 
-
+    @Query("SELECT * FROM patients WHERE email = :email LIMIT 1")
+    Patient findByEmail(String email);
 }

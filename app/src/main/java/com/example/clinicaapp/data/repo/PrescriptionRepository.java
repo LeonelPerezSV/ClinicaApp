@@ -20,31 +20,21 @@ public class PrescriptionRepository {
         sync = new FirebaseSyncRepository(context);
     }
 
-    // 🔹 Todas las prescripciones
-    public LiveData<List<Prescription>> getAll() {
-        return dao.getAll();
-    }
+    public LiveData<List<Prescription>> getAll() { return dao.getAll(); }
 
-    // 🔹 Por paciente
-    public LiveData<List<Prescription>> getByPatient(int patientId) {
-        return dao.getByPatient(patientId);
-    }
+    public LiveData<List<Prescription>> getByPatient(int patientId) { return dao.getByPatient(patientId); }
 
-    // 🔹 Por ID
-    public LiveData<Prescription> getById(int id) {
-        // Corrige el método: el DAO tiene "findById"
-        return dao.findById(id);
-    }
+    public LiveData<Prescription> getById(int id) { return dao.findById(id); }
 
-    // 🔹 Insertar
+    //Lógica de inserción para garantizar la consistencia de IDs.
     public void insert(Prescription p) {
         executor.execute(() -> {
-            dao.insert(p);
+            long newId = dao.insert(p);
+            p.setId((int) newId);
             sync.upsertPrescription(p);
         });
     }
 
-    // 🔹 Actualizar
     public void update(Prescription p) {
         executor.execute(() -> {
             dao.update(p);
@@ -52,7 +42,6 @@ public class PrescriptionRepository {
         });
     }
 
-    // 🔹 Eliminar individual
     public void delete(Prescription p) {
         executor.execute(() -> {
             dao.delete(p);
@@ -60,7 +49,6 @@ public class PrescriptionRepository {
         });
     }
 
-    // 🔹 Eliminar por ID
     public void deleteById(int id) {
         executor.execute(() -> {
             dao.deleteById(id);
@@ -68,12 +56,20 @@ public class PrescriptionRepository {
         });
     }
 
-    // 🔹 Eliminar todas
+    public void deleteByPatientId(int patientId) {
+        executor.execute(() -> {
+            List<Prescription> prescriptionsToDelete = dao.getAllSyncByPatient(patientId);
+            for (Prescription p : prescriptionsToDelete) {
+                sync.deletePrescription(p.getId());
+            }
+            dao.deleteByPatientId(patientId);
+        });
+    }
+
     public void deleteAll() {
         executor.execute(dao::deleteAll);
     }
 
-    // 🔹 Sincronizar desde Firestore
     public void syncAll() {
         executor.execute(sync::pullPrescriptionsDown);
     }

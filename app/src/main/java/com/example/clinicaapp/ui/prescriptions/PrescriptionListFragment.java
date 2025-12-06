@@ -3,28 +3,35 @@ package com.example.clinicaapp.ui.prescriptions;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.view.*;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Toast;
 
-import androidx.annotation.*;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.recyclerview.widget.*;
+import androidx.recyclerview.widget.ItemTouchHelper;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.clinicaapp.R;
-import com.example.clinicaapp.data.db.AppDatabase;
 import com.example.clinicaapp.data.entities.Prescription;
 import com.example.clinicaapp.databinding.FragmentPrescriptionListBinding;
+import com.example.clinicaapp.viewmodel.PatientViewModel;
 import com.example.clinicaapp.viewmodel.PrescriptionViewModel;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.List;
-import java.util.concurrent.Executors;
 
 public class PrescriptionListFragment extends Fragment implements PrescriptionAdapter.OnPrescriptionClick {
 
     private FragmentPrescriptionListBinding binding;
-    private PrescriptionViewModel viewModel;
+    private PrescriptionViewModel prescriptionViewModel;
+    private PatientViewModel patientViewModel; //Para obtener el ID del paciente
     private PrescriptionAdapter adapter;
+
     private boolean isDoctor;
     private long userId;
 
@@ -43,81 +50,69 @@ public class PrescriptionListFragment extends Fragment implements PrescriptionAd
         userId = prefs.getLong("user_id", 0);
         isDoctor = "Doctor".equalsIgnoreCase(type);
 
-        viewModel = new ViewModelProvider(this).get(PrescriptionViewModel.class);
+        // Inicializar los ViewModels
+        prescriptionViewModel = new ViewModelProvider(this).get(PrescriptionViewModel.class);
+        patientViewModel = new ViewModelProvider(this).get(PatientViewModel.class);
+
+        // Configurar el RecyclerView
         adapter = new PrescriptionAdapter(this);
         binding.recycler.setLayoutManager(new LinearLayoutManager(getContext()));
         binding.recycler.setAdapter(adapter);
 
+        // Configurar los observadores de datos
+        setupObservers();
+
+        // Configurar la UI (FAB y gesto de swipe)
+        setupUI();
+    }
+
+    //Configura la lógica para obtener datos a través de los ViewModels.
+
+    private void setupObservers() {
         if (isDoctor) {
-            // 👨‍⚕️ Doctor → todas las recetas
-            viewModel.getAllPrescriptions().observe(getViewLifecycleOwner(), this::updateList);
+            // Si es Doctor, muestra todas las recetas
+            prescriptionViewModel.getAllPrescriptions().observe(getViewLifecycleOwner(), this::updateList);
         } else {
-            // 👤 Paciente → buscar su patientId real y mostrar solo sus recetas
-            Executors.newSingleThreadExecutor().execute(() -> {
-                try {
-                    AppDatabase db = AppDatabase.getInstance(requireContext());
-                    int patientId = db.patientDao().getPatientIdByUserId((int) userId);
-
-                    android.util.Log.d("CLINICAPP", "userId=" + userId + ", patientId=" + patientId);
-
-                    requireActivity().runOnUiThread(() -> {
-                        if (patientId > 0) {
-                            viewModel.getPrescriptionsByPatient(patientId)
-                                    .observe(getViewLifecycleOwner(), list -> {
-                                        if (list != null && !list.isEmpty()) {
-                                            adapter.submit(list);
-                                            binding.empty.setVisibility(View.GONE);
-                                        } else {
-                                            binding.empty.setVisibility(View.VISIBLE);
-                                            binding.empty.setText("No tienes recetas registradas.");
-                                        }
-                                    });
-                        } else {
-                            binding.empty.setVisibility(View.VISIBLE);
-                            binding.empty.setText("No se encontró un paciente vinculado a este usuario.");
-                        }
-                    });
-
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    requireActivity().runOnUiThread(() ->
-                            Toast.makeText(requireContext(),
-                                    "Error al cargar recetas: " + e.getMessage(),
-                                    Toast.LENGTH_LONG).show()
-                    );
+            //Si es Paciente, busca su ID de paciente y luego sus recetas
+            patientViewModel.getPatientIdByUserId((int) userId).observe(getViewLifecycleOwner(), patientId -> {
+                if (patientId != null && patientId > 0) {
+                    // Una vez que tenemos el patientId, observamos sus recetas
+                    prescriptionViewModel.getPrescriptionsByPatient(patientId).observe(getViewLifecycleOwner(), this::updateList);
+                } else {
+                    // No se encontró un paciente para este usuario
+                    binding.empty.setVisibility(View.VISIBLE);
+                    binding.empty.setText("No se encontró un paciente vinculado a este usuario.");
                 }
             });
         }
+    }
 
-
-
+    private void setupUI() {
         // FAB solo visible para doctor
         binding.fabAdd.setVisibility(isDoctor ? View.VISIBLE : View.GONE);
         if (isDoctor) {
             binding.fabAdd.setOnClickListener(v -> openForm(-1));
         }
 
-        // Swipe para eliminar recetas solo si es doctor
+        // Swipe para eliminar solo si es doctor
         if (isDoctor) {
             new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
-                @Override public boolean onMove(@NonNull RecyclerView rv, @NonNull RecyclerView.ViewHolder v1, @NonNull RecyclerView.ViewHolder v2) { return false; }
+                @Override
+                public boolean onMove(@NonNull RecyclerView rv, @NonNull RecyclerView.ViewHolder vh1, @NonNull RecyclerView.ViewHolder vh2) {
+                    return false;
+                }
 
                 @Override
                 public void onSwiped(@NonNull RecyclerView.ViewHolder vh, int dir) {
                     Prescription item = adapter.getAt(vh.getAdapterPosition());
-                    new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                    new MaterialAlertDialogBuilder(requireContext())
                             .setTitle("Confirmar eliminación")
-                            .setMessage("¿Desea eliminar la receta del paciente #" + item.getPatientId() + "?")
-                            .setIcon(android.R.drawable.ic_dialog_alert)
-                            .setCancelable(false)
+                            .setMessage("¿Desea eliminar esta receta?")
                             .setPositiveButton("Eliminar", (dialog, which) -> {
-                                viewModel.deleteById(item.getId());
-                                Toast.makeText(getContext(), "Receta eliminada correctamente", Toast.LENGTH_SHORT).show();
+                                prescriptionViewModel.deleteById(item.getId());
+                                Toast.makeText(getContext(), "Receta eliminada", Toast.LENGTH_SHORT).show();
                             })
-                            .setNegativeButton("Cancelar", (dialog, which) -> {
-                                adapter.notifyItemChanged(vh.getAdapterPosition());
-                                dialog.dismiss();
-                            })
+                            .setNegativeButton("Cancelar", (dialog, which) -> adapter.notifyItemChanged(vh.getAdapterPosition()))
                             .show();
                 }
             }).attachToRecyclerView(binding.recycler);
@@ -127,10 +122,12 @@ public class PrescriptionListFragment extends Fragment implements PrescriptionAd
     private void updateList(List<Prescription> list) {
         adapter.submit(list);
         binding.empty.setVisibility(list == null || list.isEmpty() ? View.VISIBLE : View.GONE);
+        if (list == null || list.isEmpty()) {
+            binding.empty.setText("No hay recetas registradas.");
+        }
     }
 
     private void openForm(int id) {
-        // 🧠 Si el usuario es paciente, abrimos el formulario en modo solo lectura
         Fragment f = PrescriptionFormFragment.newInstance(id, !isDoctor);
         requireActivity().getSupportFragmentManager()
                 .beginTransaction()

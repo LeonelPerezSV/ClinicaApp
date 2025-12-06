@@ -39,7 +39,7 @@ public abstract class AppDatabase extends RoomDatabase {
 
     private static AppDatabase instance;
 
-    // 🔹 DAOs válidos
+    // DAOs válidos para la base de datos
     public abstract UserDao userDao();
     public abstract DoctorDao doctorDao();
     public abstract PatientDao patientDao();
@@ -47,7 +47,7 @@ public abstract class AppDatabase extends RoomDatabase {
     public abstract PrescriptionDao prescriptionDao();
     public abstract MedicalRecordDao medicalRecordDao();
 
-    // 🔹 Singleton para acceso global
+    // Singleton para acceso global a la base de datos
     public static synchronized AppDatabase getInstance(Context context) {
         if (instance == null) {
             instance = Room.databaseBuilder(

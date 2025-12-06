@@ -14,8 +14,9 @@ import java.util.List;
 @Dao
 public interface PrescriptionDao {
 
+    //Ahora devuelve el ID (long) de la receta insertada en la base de datos.
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    void insert(Prescription prescription);
+    long insert(Prescription prescription);
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     void insertAll(List<Prescription> prescriptions);
@@ -29,19 +30,18 @@ public interface PrescriptionDao {
     @Query("DELETE FROM prescriptions")
     void deleteAll();
 
-    // 🔹 Todas las recetas (para doctor)
     @Query("SELECT * FROM prescriptions ORDER BY date DESC")
     LiveData<List<Prescription>> getAll();
 
-    // 🔹 Receta por ID
     @Query("SELECT * FROM prescriptions WHERE id = :id LIMIT 1")
     LiveData<Prescription> findById(int id);
 
-    // 🔹 Recetas filtradas por paciente
     @Query("SELECT * FROM prescriptions WHERE patientId = :patientId ORDER BY date DESC")
     LiveData<List<Prescription>> getByPatient(int patientId);
 
-    // 🔹 Eliminar receta por ID
+    @Query("SELECT * FROM prescriptions WHERE patientId = :patientId")
+    List<Prescription> getAllSyncByPatient(int patientId);
+
     @Query("DELETE FROM prescriptions WHERE id = :id")
     void deleteById(int id);
 
