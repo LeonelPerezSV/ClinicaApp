@@ -44,6 +44,14 @@ public class MainActivity extends AppCompatActivity {
         setContentView(binding.getRoot());
         setSupportActionBar(binding.appBarMain.toolbar);
 
+        // FAB
+       //binding.appBarMain.fab.setOnClickListener(view ->
+             //   Snackbar.make(view, "Acción rápida disponible", Snackbar.LENGTH_LONG)
+         //               .setAction("Ok", null)
+              //          .setAnchorView(R.id.fab)
+                //        .show()
+     //   );
+
         DrawerLayout drawer = binding.drawerLayout;
         NavigationView navView = binding.navView;
 
