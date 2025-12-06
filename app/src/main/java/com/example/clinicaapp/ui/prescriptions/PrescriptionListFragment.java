@@ -29,7 +29,7 @@ public class PrescriptionListFragment extends Fragment implements PrescriptionAd
 
     private FragmentPrescriptionListBinding binding;
     private PrescriptionViewModel prescriptionViewModel;
-    private PatientViewModel patientViewModel; // [NUEVO] Para obtener el ID del paciente
+    private PatientViewModel patientViewModel; //Para obtener el ID del paciente
     private PrescriptionAdapter adapter;
 
     private boolean isDoctor;
@@ -70,10 +70,10 @@ public class PrescriptionListFragment extends Fragment implements PrescriptionAd
 
     private void setupObservers() {
         if (isDoctor) {
-            // 👨‍⚕️ Si es Doctor, muestra todas las recetas
+            // Si es Doctor, muestra todas las recetas
             prescriptionViewModel.getAllPrescriptions().observe(getViewLifecycleOwner(), this::updateList);
         } else {
-            // 👤 Si es Paciente, busca su ID de paciente y luego sus recetas
+            //Si es Paciente, busca su ID de paciente y luego sus recetas
             patientViewModel.getPatientIdByUserId((int) userId).observe(getViewLifecycleOwner(), patientId -> {
                 if (patientId != null && patientId > 0) {
                     // Una vez que tenemos el patientId, observamos sus recetas

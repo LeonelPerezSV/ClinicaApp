@@ -11,6 +11,8 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.clinicaapp.MainActivity;
 import com.example.clinicaapp.R;
 import com.example.clinicaapp.data.db.AppDatabase;
+import com.example.clinicaapp.data.entities.Doctor;
+import com.example.clinicaapp.data.entities.Patient;
 import com.example.clinicaapp.data.entities.User;
 import com.example.clinicaapp.data.repo.FirebaseSyncRepository;
 import com.google.firebase.auth.FirebaseAuth;
@@ -30,17 +32,8 @@ public class LoginActivity extends AppCompatActivity {
     private FirebaseAuth mAuth;
     private FirebaseSyncRepository syncRepo;
 
-    // Validaciones
     private static final Pattern EMAIL_PATTERN =
             Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$");
-
-    private static boolean isValidEmail(String s) {
-        return s != null && EMAIL_PATTERN.matcher(s).matches();
-    }
-
-    private static boolean isValidPassword(String s) {
-        return s != null && s.length() >= 8 && s.matches("^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]+$");
-    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,7 +60,6 @@ public class LoginActivity extends AppCompatActivity {
 
         db = AppDatabase.getInstance(this);
 
-        // Configuración del Spinner
         String[] tipos = {"Paciente", "Doctor"};
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, tipos);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -79,7 +71,6 @@ public class LoginActivity extends AppCompatActivity {
             @Override public void onNothingSelected(AdapterView<?> parent) { selectedUserType = "Paciente"; }
         });
 
-        // Recordarme: restaurar datos si existen
         SharedPreferences prefs = getSharedPreferences("ClinicaAppPrefs", MODE_PRIVATE);
         if (prefs.getBoolean("remember_me", false)) {
             cbRemember.setChecked(true);
@@ -97,13 +88,12 @@ public class LoginActivity extends AppCompatActivity {
         String username = edtUser.getText().toString().trim().toLowerCase();
         String password = edtPass.getText().toString().trim();
 
-        // Validaciones
-        if (!isValidEmail(username)) {
-            Toast.makeText(this, "Correo inválido. Ejemplo: usuario@dominio.com", Toast.LENGTH_SHORT).show();
+        if (!EMAIL_PATTERN.matcher(username).matches()) {
+            Toast.makeText(this, "Correo inválido.", Toast.LENGTH_SHORT).show();
             return;
         }
-        if (!isValidPassword(password)) {
-            Toast.makeText(this, "La contraseña debe tener al menos 8 caracteres alfanuméricos.", Toast.LENGTH_LONG).show();
+        if (password.length() < 8) {
+            Toast.makeText(this, "La contraseña debe tener al menos 8 caracteres.", Toast.LENGTH_LONG).show();
             return;
         }
 
@@ -112,21 +102,18 @@ public class LoginActivity extends AppCompatActivity {
                     if (task.isSuccessful()) {
                         Log.d("LoginActivity", "signInWithEmail:success");
                         FirebaseUser firebaseUser = mAuth.getCurrentUser();
-                        // Sincronizar los datos del usuario desde Firestore a la base de datos local
                         syncRepo.pullUserByEmail(firebaseUser.getEmail(), user -> {
                             if (user != null) {
-                                runOnUiThread(() -> onLoginSuccess(user, password));
+                                onLoginSuccess(user, password);
                             } else {
-                                // El usuario se autenticó en Firebase, pero no se encontraron sus datos en Firestore.
                                 runOnUiThread(() -> {
-                                    Toast.makeText(LoginActivity.this, "No se encontraron los datos del perfil de usuario.", Toast.LENGTH_LONG).show();
-                                    mAuth.signOut(); // Cerramos la sesión de Firebase para evitar un estado inconsistente
+                                    Toast.makeText(LoginActivity.this, "No se encontraron los datos del perfil.", Toast.LENGTH_LONG).show();
+                                    mAuth.signOut();
                                 });
                             }
                         });
                     } else {
                         Log.w("LoginActivity", "signInWithEmail:failure", task.getException());
-                        // Si falla la autenticación de Firebase, intentamos el login local como último recurso.
                         tryLocalLogin(username, password);
                     }
                 });
@@ -146,16 +133,47 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void onLoginSuccess(User user, String password) {
-        // Guardar sesión
+        new Thread(() -> {
+            // Lógica de Auto-Reparación y Enriquecimiento del Perfil
+            if ("Paciente".equalsIgnoreCase(user.getUserType())) {
+                Patient patient = db.patientDao().findByEmail(user.getUsername());
+                if (patient != null) {
+                    if (patient.getUserId() != user.getId()) {
+                        Log.d("LoginActivity", "Auto-reparando ID de paciente inconsistente.");
+                        patient.setUserId(user.getId());
+                        db.patientDao().update(patient);
+                    }
+                    // Enriquecer el objeto User con el teléfono del Paciente
+                    user.setPhone(patient.getPhone());
+                }
+            } else if ("Doctor".equalsIgnoreCase(user.getUserType())) {
+                Doctor doctor = db.doctorDao().findByEmail(user.getUsername());
+                if (doctor != null) {
+                    if (doctor.getUserId() != user.getId()) {
+                        Log.d("LoginActivity", "Auto-reparando ID de doctor inconsistente.");
+                        doctor.setUserId(user.getId());
+                        db.doctorDao().update(doctor);
+                    }
+                    // Enriquecer el objeto User con los datos del Doctor
+                    user.setPhone(doctor.getPhone());
+                    user.setSpecialty(doctor.getSpecialty());
+                }
+            }
+
+            // Una vez verificado y enriquecido, proceder en el hilo principal
+            runOnUiThread(() -> saveSessionAndNavigate(user, password));
+        }).start();
+    }
+
+    private void saveSessionAndNavigate(User user, String password) {
         SharedPreferences session = getSharedPreferences("session", MODE_PRIVATE);
         session.edit().putBoolean("logged_in", true).apply();
 
-        // El objeto User ya está completo, no es necesario volver a consultarlo.
         SharedPreferences prefs = getSharedPreferences("ClinicaAppPrefs", MODE_PRIVATE);
         SharedPreferences.Editor editor = prefs.edit();
 
-        editor.putString("user_type", user.getUserType() == null ? "Paciente" : user.getUserType());
-        editor.putString("user_name", user.getFullName() == null ? user.getUsername() : user.getFullName());
+        editor.putString("user_type", user.getUserType());
+        editor.putString("user_name", user.getFullName());
         editor.putString("user_email", user.getUsername());
         editor.putLong("user_id", user.getId());
         editor.putString("user_phone", user.getPhone());
@@ -163,12 +181,10 @@ public class LoginActivity extends AppCompatActivity {
         if ("Doctor".equals(user.getUserType())) {
             editor.putString("user_specialty", user.getSpecialty());
         }
-
         if (user.getPhotoUrl() != null) {
             editor.putString("user_photo_url", user.getPhotoUrl());
         }
 
-        // Recordarme
         if (cbRemember.isChecked()) {
             editor.putBoolean("remember_me", true);
             editor.putString("remember_user", user.getUsername());

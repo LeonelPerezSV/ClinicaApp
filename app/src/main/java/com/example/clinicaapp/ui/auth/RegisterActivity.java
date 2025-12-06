@@ -10,12 +10,12 @@ import com.example.clinicaapp.data.db.AppDatabase;
 import com.example.clinicaapp.data.entities.Doctor;
 import com.example.clinicaapp.data.entities.Patient;
 import com.example.clinicaapp.data.entities.User;
-import com.example.clinicaapp.data.repo.DoctorRepository;
 import com.example.clinicaapp.data.repo.FirebaseSyncRepository;
 import com.example.clinicaapp.data.repo.PatientRepository;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
+import java.util.List;
 import java.util.regex.Pattern;
 
 public class RegisterActivity extends AppCompatActivity {
@@ -126,16 +126,17 @@ public class RegisterActivity extends AppCompatActivity {
                         syncRepo.syncUserToFirestore(user);
 
                         if ("Doctor".equalsIgnoreCase(selectedType)) {
-                            try {
-                                DoctorRepository doctorRepo = new DoctorRepository(this);
-                                Doctor doctor = new Doctor(fullName, specialty, email, phone);
-                                doctor.setId(user.getId()); // Match Doctor ID with User ID
-                                doctorRepo.insert(doctor); 
-                                syncRepo.upsertDoctor(doctor); // Sincronización explícita
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                                Toast.makeText(this, "Error creando perfil de doctor", Toast.LENGTH_SHORT).show();
-                            }
+                            new Thread(() -> {
+                                try {
+                                    Doctor doctor = new Doctor((int) userId, fullName, specialty, email, phone);
+                                    long doctorId = db.doctorDao().insert(doctor);
+                                    doctor.setId((int) doctorId);
+                                    syncRepo.upsertDoctor(doctor);
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                    runOnUiThread(() -> Toast.makeText(this, "Error creando perfil de doctor", Toast.LENGTH_SHORT).show());
+                                }
+                            }).start();
                         } else {
                             try {
                                 PatientRepository patientRepo = new PatientRepository(this);
@@ -143,11 +144,12 @@ public class RegisterActivity extends AppCompatActivity {
                                 String first = parts.length > 0 ? parts[0] : fullName;
                                 String last = parts.length > 1 ? parts[1] : "";
                                 Patient p = new Patient(first, last, email, phone, user.getId());
-                                patientRepo.insert(p); // Este método ya sincroniza
+                                patientRepo.insert(p);
 
                                 new android.os.Handler().postDelayed(() -> {
-                                    Patient lastPatient = db.patientDao().getAllPatientsList().get(db.patientDao().getAllPatientsList().size() - 1);
-                                    if (lastPatient != null) {
+                                    List<Patient> allPatients = db.patientDao().getAllPatientsList();
+                                    if (!allPatients.isEmpty()) {
+                                        Patient lastPatient = allPatients.get(allPatients.size() - 1);
                                         com.example.clinicaapp.data.repo.MedicalRecordRepository recordRepo =
                                                 new com.example.clinicaapp.data.repo.MedicalRecordRepository(this);
                                         com.example.clinicaapp.data.entities.MedicalRecord record =

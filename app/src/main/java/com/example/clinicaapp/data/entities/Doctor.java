@@ -10,6 +10,7 @@ public class Doctor {
     @PrimaryKey(autoGenerate = true)
     private int id;
 
+    private int userId; // Clave foránea para el usuario
     private String name;
     private String specialty;
     private String email;
@@ -19,7 +20,8 @@ public class Doctor {
 
 
     @Ignore
-    public Doctor(String name, String specialty, String email, String phone) {
+    public Doctor(int userId, String name, String specialty, String email, String phone) {
+        this.userId = userId;
         this.name = name;
         this.specialty = specialty;
         this.email = email;
@@ -28,6 +30,9 @@ public class Doctor {
 
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
+
+    public int getUserId() { return userId; }
+    public void setUserId(int userId) { this.userId = userId; }
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }

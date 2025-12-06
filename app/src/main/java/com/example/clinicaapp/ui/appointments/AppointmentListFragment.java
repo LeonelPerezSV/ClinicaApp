@@ -26,6 +26,7 @@ import com.example.clinicaapp.viewmodel.DoctorViewModel;
 import com.example.clinicaapp.viewmodel.PatientViewModel;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class AppointmentListFragment extends Fragment implements AppointmentAdapter.OnAppointmentClick {
@@ -37,9 +38,8 @@ public class AppointmentListFragment extends Fragment implements AppointmentAdap
     private AppointmentAdapter adapter;
 
     private boolean isDoctor;
-    private long userId;
+    private int userId;
 
-    // Listas para almacenar los datos de los observadores
     private List<Appointment> appointmentList;
     private List<Patient> patientList;
     private List<Doctor> doctorList;
@@ -56,63 +56,68 @@ public class AppointmentListFragment extends Fragment implements AppointmentAdap
 
         SharedPreferences prefs = requireActivity().getSharedPreferences("ClinicaAppPrefs", Context.MODE_PRIVATE);
         String type = prefs.getString("user_type", "Paciente");
-        userId = prefs.getLong("user_id", 0);
+        userId = (int) prefs.getLong("user_id", 0L);
         isDoctor = "Doctor".equalsIgnoreCase(type);
 
-        // Inicializar todos los ViewModels
-        appointmentViewModel = new ViewModelProvider(this).get(AppointmentViewModel.class);
-        patientViewModel = new ViewModelProvider(this).get(PatientViewModel.class);
-        doctorViewModel = new ViewModelProvider(this).get(DoctorViewModel.class);
+        ViewModelProvider viewModelProvider = new ViewModelProvider(requireActivity());
+        appointmentViewModel = viewModelProvider.get(AppointmentViewModel.class);
+        patientViewModel = viewModelProvider.get(PatientViewModel.class);
+        doctorViewModel = viewModelProvider.get(DoctorViewModel.class);
 
-        // Configurar el RecyclerView y el Adaptador
         adapter = new AppointmentAdapter(this);
         binding.recycler.setLayoutManager(new LinearLayoutManager(getContext()));
         binding.recycler.setAdapter(adapter);
 
-        // Configurar los observadores que trabajarán juntos
         setupObservers();
-
-        // configurar el resto de la UI
         setupUI();
     }
 
-     //Configura los observadores para las 3 listas de datos.
-     //El adaptador solo se actualiza cuando se han recibido los tres conjuntos de datos.
-
     private void setupObservers() {
-        patientViewModel.getAll().observe(getViewLifecycleOwner(), patients -> {
-            this.patientList = patients;
-            tryUpdateAdapter();
-        });
-
+        // Lógica de carga secuencial para evitar race conditions.
+        // 1. Cargar las listas de soporte (Doctores y Pacientes).
         doctorViewModel.getAll().observe(getViewLifecycleOwner(), doctors -> {
             this.doctorList = doctors;
-            tryUpdateAdapter();
+            // Una vez que los doctores están cargados, intentamos cargar las citas.
+            loadPrimaryData();
         });
 
-        // El observador de citas determina QUÉ citas mostrar (todas o solo las del paciente)
+        patientViewModel.getAll().observe(getViewLifecycleOwner(), patients -> {
+            this.patientList = patients;
+            // Una vez que los pacientes están cargados, intentamos cargar las citas.
+            loadPrimaryData();
+        });
+    }
+
+    private void loadPrimaryData() {
+        // No hacer nada hasta que ambas listas de soporte estén listas.
+        if (patientList == null || doctorList == null) {
+            return;
+        }
+
+        // tenemos las listas de nombres, cargamos la lista principal (Citas).
         if (isDoctor) {
             appointmentViewModel.getAllAppointments().observe(getViewLifecycleOwner(), appointments -> {
                 this.appointmentList = appointments;
                 tryUpdateAdapter();
             });
         } else {
-            // La lógica para obtener las citas de un paciente específico se puede mejorar en el futuro,
-            // pero por ahora la mantenemos para no romper la funcionalidad existente en AppointmentViewModel.
-            patientViewModel.getPatientIdByUserId((int) userId).observe(getViewLifecycleOwner(), patientId -> {
+            patientViewModel.getPatientIdByUserId(userId).observe(getViewLifecycleOwner(), patientId -> {
                 if (patientId != null && patientId > 0) {
                     appointmentViewModel.getAppointmentsByPatient(patientId).observe(getViewLifecycleOwner(), appointments -> {
                         this.appointmentList = appointments;
                         tryUpdateAdapter();
                     });
+                } else {
+                    this.appointmentList = new ArrayList<>();
+                    tryUpdateAdapter();
                 }
             });
         }
     }
 
-    //Intenta actualizar el adaptador. Solo lo hace si las 3 listas de datos han sido recibidas.
 
     private void tryUpdateAdapter() {
+        // El "guardián" que solo actualiza la UI cuando TODOS los datos están listos.
         if (appointmentList != null && patientList != null && doctorList != null) {
             adapter.setData(appointmentList, patientList, doctorList);
             binding.empty.setVisibility(appointmentList.isEmpty() ? View.VISIBLE : View.GONE);
@@ -126,16 +131,15 @@ public class AppointmentListFragment extends Fragment implements AppointmentAdap
             binding.fabAdd.setOnClickListener(v -> openForm(-1));
         }
 
-        // Configurar el gesto de deslizar para eliminar (solo para doctores)
         if (isDoctor) {
             new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
                 @Override
-                public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
+                public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder, RecyclerView.ViewHolder target) {
                     return false;
                 }
 
                 @Override
-                public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+                public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
                     Appointment item = adapter.getAt(viewHolder.getAdapterPosition());
                     new MaterialAlertDialogBuilder(requireContext())
                             .setTitle("Eliminar cita")

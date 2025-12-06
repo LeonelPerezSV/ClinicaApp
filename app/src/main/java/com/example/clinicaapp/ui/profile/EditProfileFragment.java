@@ -157,7 +157,6 @@ public class EditProfileFragment extends Fragment {
 
         // --- Update Firestore --- //
 
-        // 1. Update the 'users' collection (fullName, photoUrl)
         Map<String, Object> userUpdates = new HashMap<>();
         userUpdates.put("fullName", newName);
         if (newPhotoBase64 != null) {
@@ -168,7 +167,6 @@ public class EditProfileFragment extends Fragment {
             .addOnSuccessListener(aVoid -> Log.d("EditProfileFragment", "User main data updated in Firestore."))
             .addOnFailureListener(e -> Log.e("EditProfileFragment", "Error updating user main data", e));
 
-        // 2. Update the sub-collection (phone, specialty)
         Map<String, Object> subCollectionUpdates = new HashMap<>();
         subCollectionUpdates.put("phone", newPhone);
 

@@ -14,12 +14,12 @@ public class Appointment {
     private String date;
     private String time;
     private String status; // pendiente, completada, cancelada
-    private String reason; // ✅ nuevo campo
+    private String reason;
 
     public Appointment() {}
 
 
-    @Ignore // ✅ evita ambigüedad
+    @Ignore // evita ambigüedad
     public Appointment(int doctorId, int patientId, String date, String time, String status, String reason) {
         this.doctorId = doctorId;
         this.patientId = patientId;
@@ -58,13 +58,12 @@ public class Appointment {
 
     @Ignore
     public String getPatientName() {
-        // Este método puede obtener el nombre del paciente si ya tienes PatientDao
+
         return "Paciente #" + patientId; // Placeholder
     }
 
     @Ignore
     public String getDoctorName() {
-        // Este método puede obtener el nombre del doctor si ya tienes DoctorDao
         return "Doctor #" + doctorId; // Placeholder
     }
 

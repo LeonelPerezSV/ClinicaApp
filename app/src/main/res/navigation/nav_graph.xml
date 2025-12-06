@@ -4,26 +4,39 @@
     xmlns:tools="http://schemas.android.com/tools"
     app:startDestination="@id/nav_home">
 
-    <!-- 🏠 Inicio -->
+    <!-- Inicio -->
     <fragment
         android:id="@+id/nav_home"
         android:name="com.example.clinicaapp.ui.home.HomeFragment"
         android:label="Inicio"
-        tools:layout="@layout/fragment_home" />
+        tools:layout="@layout/fragment_home">
+        <action
+            android:id="@+id/action_home_to_citas"
+            app:destination="@id/nav_citas" />
+        <action
+            android:id="@+id/action_home_to_recetas_paciente"
+            app:destination="@id/nav_recetas_paciente" />
+    </fragment>
 
-    <!-- 👤 Mi Perfil -->
+    <!-- Mi Perfil -->
     <fragment
         android:id="@+id/nav_profile"
         android:name="com.example.clinicaapp.ui.profile.EditProfileFragment"
         android:label="Mi Perfil"
         tools:layout="@layout/fragment_edit_profile" />
 
-    <!-- 📅 Citas -->
+    <!-- Citas -->
     <fragment
         android:id="@+id/nav_citas"
         android:name="com.example.clinicaapp.ui.appointments.AppointmentListFragment"
         android:label="Mis Citas"
         tools:layout="@layout/fragment_appointment_list">
+        <action
+            android:id="@+id/action_citas_to_home"
+            app:destination="@id/nav_home" />
+        <action
+            android:id="@+id/action_citas_to_recetas_paciente"
+            app:destination="@id/nav_recetas_paciente" />
         <action
             android:id="@+id/action_nav_citas_to_form"
             app:destination="@id/appointmentFormFragment" />
@@ -35,7 +48,7 @@
         android:label="Nueva Cita"
         tools:layout="@layout/fragment_appointment_form" />
 
-    <!-- 👩‍⚕️ Pacientes -->
+    <!-- Pacientes (Doctor View) -->
     <fragment
         android:id="@+id/nav_pacientes"
         android:name="com.example.clinicaapp.ui.patients.PatientListFragment"
@@ -52,7 +65,7 @@
         android:label="Formulario Paciente"
         tools:layout="@layout/fragment_patient_form" />
 
-    <!-- 💊 Recetas -->
+    <!-- Recetas (Doctor View) -->
     <fragment
         android:id="@+id/nav_recetas"
         android:name="com.example.clinicaapp.ui.prescriptions.PrescriptionListFragment"
@@ -61,6 +74,20 @@
         <action
             android:id="@+id/action_nav_recetas_to_form"
             app:destination="@id/prescriptionFormFragment" />
+    </fragment>
+
+    <!-- Recetas (Patient View) -->
+    <fragment
+        android:id="@+id/nav_recetas_paciente"
+        android:name="com.example.clinicaapp.ui.prescriptions.PrescriptionListFragment"
+        android:label="Mis Recetas"
+        tools:layout="@layout/fragment_prescription_list">
+        <action
+            android:id="@+id/action_recetas_paciente_to_home"
+            app:destination="@id/nav_home" />
+        <action
+            android:id="@+id/action_recetas_paciente_to_citas"
+            app:destination="@id/nav_citas" />
     </fragment>
 
     <fragment
@@ -99,6 +126,5 @@
         android:name="com.example.clinicaapp.ui.settings.SettingsFragment"
         android:label="Configuración"
         tools:layout="@layout/fragment_settings" />
-
 
 </navigation>

@@ -17,7 +17,6 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.ClinicaApp">
 
-        <!-- ✅ ESTA es la forma correcta -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyA0cmZOUa7ARok1BOG9Klw4nvYi-0F2LDs" />

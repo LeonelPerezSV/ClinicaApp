@@ -69,7 +69,8 @@
         <item
             android:id="@+id/btnClearSession"
             android:icon="@android:drawable/ic_lock_power_off"
-            android:title="Cerrar sesión" />
+            android:title="Cerrar sesión"
+            android:visible="false"/>
     </group>
 
 </menu>

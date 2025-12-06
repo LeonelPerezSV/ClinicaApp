@@ -55,6 +55,8 @@ dependencies {
 
     // --- Base de Datos Local ---
     implementation("androidx.room:room-runtime:2.6.1")
+    implementation(libs.androidx.navigation.fragment)
+    implementation(libs.androidx.navigation.ui)
     annotationProcessor("androidx.room:room-compiler:2.6.1")
 
     // --- Networking ---

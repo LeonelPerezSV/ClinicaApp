@@ -149,7 +149,8 @@ public class PrescriptionFormFragment extends Fragment {
 
             selectDropdownValue(binding.spinnerPatient, p.getPatientId());
 
-            binding.btnDelete.setVisibility(View.VISIBLE);
+            boolean isReadOnly = getArguments() != null && getArguments().getBoolean(ARG_READ_ONLY, false);
+            binding.btnDelete.setVisibility(isReadOnly ? View.GONE : View.VISIBLE);
             binding.btnDelete.setOnClickListener(v -> {
                 prescriptionViewModel.delete(p);
                 Toast.makeText(getContext(), "Receta eliminada", Toast.LENGTH_SHORT).show();

@@ -49,9 +49,12 @@ public interface PatientDao {
     @Query("SELECT * FROM patients ORDER BY lastName ASC")
     List<Patient> getAllPatientsList();
 
-    //Ahora devuelve LiveData<Integer> para ser compatible con la arquitectura de ViewModel.
-
     @Query("SELECT id FROM patients WHERE userId = :userId LIMIT 1")
     LiveData<Integer> getPatientIdByUserId(int userId);
 
+    @Query("SELECT * FROM patients WHERE userId = :userId LIMIT 1")
+    Patient findByUserId(int userId);
+
+    @Query("SELECT * FROM patients WHERE email = :email LIMIT 1")
+    Patient findByEmail(String email);
 }

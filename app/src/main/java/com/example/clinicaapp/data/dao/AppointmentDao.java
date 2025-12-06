@@ -14,10 +14,6 @@ import java.util.List;
 @Dao
 public interface AppointmentDao {
 
-    /**
-     * [CORREGIDO] Ahora devuelve el ID (long) de la cita insertada.
-     * Esto es crucial para mantener la consistencia con Firestore.
-     */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     long insert(Appointment appointment);
 
@@ -46,10 +42,10 @@ public interface AppointmentDao {
     LiveData<Appointment> getById(int id);
 
     @Query("SELECT * FROM appointments WHERE doctorId = :doctorId ORDER BY date DESC")
-    List<Appointment> getAppointmentsForDoctor(long doctorId);
+    List<Appointment> getAppointmentsForDoctor(int doctorId);
 
     @Query("SELECT * FROM appointments WHERE patientId = :patientId ORDER BY date DESC")
-    List<Appointment> getAppointmentsForPatient(long patientId);
+    List<Appointment> getAppointmentsForPatient(int patientId);
 
     @Query("SELECT * FROM appointments WHERE patientId = :patientId ORDER BY date DESC")
     LiveData<List<Appointment>> getByPatient(int patientId);
@@ -58,10 +54,10 @@ public interface AppointmentDao {
     Appointment getByIdDirect(int id);
 
     @Query("SELECT * FROM appointments WHERE doctorId = :doctorId AND date = date('now') ORDER BY time ASC")
-    List<Appointment> findTodayAppointmentsForDoctor(long doctorId);
+    List<Appointment> findTodayAppointmentsForDoctor(int doctorId);
 
     @Query("SELECT * FROM appointments WHERE patientId = :patientId ORDER BY date, time LIMIT 1")
-    Appointment findNextAppointmentForPatient(long patientId);
+    Appointment findNextAppointmentForPatient(int patientId);
 
     @Query("SELECT * FROM appointments WHERE doctorId = :doctorId ORDER BY date DESC")
     LiveData<List<Appointment>> getByDoctor(int doctorId);
